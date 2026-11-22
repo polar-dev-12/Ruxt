@@ -7,7 +7,7 @@ One binary (egui) with tabbed SSH terminals, an Explorer-style SFTP browser, por
 PuTTY import), a screen lock with encrypted saved passwords, and an audit log. UI in Korean
 and English.
 
-* 📘 [User guide (KO)](docs/USER_GUIDE.md) · 🛡 [Threat model (KO)](docs/THREAT_MODEL.md) · 📝 [Changelog (KO)](CHANGELOG.md) · 📦 [Releases](https://github.com/polarbear138/ruxt/releases) · 🌐 [Website](https://polarbear138.github.io/ruxt/) · 🇰🇷 [한국어 README](README.ko.md) · 🔒 [Security policy](SECURITY.md) · 📜 [Third-party notices](docs/THIRD_PARTY.md)
+* 📘 [User guide (KO)](docs/USER_GUIDE.md) · 🛡 [Threat model (KO)](docs/THREAT_MODEL.md) · 📝 [Changelog (KO)](CHANGELOG.md) · 📦 [Releases](https://github.com/polarbear138/ruxt/releases) · 🌐 [Website](https://polar-dev-12.github.io/Ruxt/) · 🇰🇷 [한국어 README](README.ko.md) · 🔒 [Security policy](SECURITY.md) · 📜 [Third-party notices](docs/THIRD_PARTY.md)
 
 ![SFTP explorer with sample files](docs/images/sftp-explorer.png)
 

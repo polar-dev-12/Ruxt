@@ -1,6 +1,6 @@
 export type Lang = "ko" | "en";
 
-export const REPO = "https://github.com/polarbear138/ruxt";
+export const REPO = "https://github.com/polar-dev-12/Ruxt";
 
 type Row = { threat: string; defense: string };
 type Group = { title: string; items: string[] };

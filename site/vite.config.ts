@@ -5,10 +5,11 @@ import react from "@vitejs/plugin-react";
 
 const root = fileURLToPath(new URL(".", import.meta.url));
 
-// Served from https://<user>.github.io/ruxt/ by the Pages workflow; override with
-// VITE_BASE=/ for a custom domain.
+// Served from https://<owner>.github.io/Ruxt/ — GitHub Pages keeps the
+// repository name's case, so /ruxt/ is a different path and 404s.
+// Override with VITE_BASE=/ for a custom domain.
 export default defineConfig({
-  base: process.env.VITE_BASE ?? "/ruxt/",
+  base: process.env.VITE_BASE ?? "/Ruxt/",
   plugins: [react()],
   build: {
     target: "es2020",

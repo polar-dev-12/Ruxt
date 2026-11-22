@@ -4,7 +4,7 @@
 
 GUI(egui) 기반 다중 탭 SSH 터미널 + 윈도우 탐색기 스타일 SFTP + 포트 포워딩(-L/-R/-D SOCKS5) + 점프 호스트 + X11 포워딩 + 로컬 셸 + 세션 관리자(OpenSSH/PuTTY 가져오기) + 화면 잠금과 암호화된 비밀번호 저장 + 감사 로그를 하나의 바이너리에 담았습니다. UI는 한국어/English.
 
-* 📘 [사용자 가이드](docs/USER_GUIDE.md) · 🛡 [위협 모델](docs/THREAT_MODEL.md) · 📝 [변경 이력](CHANGELOG.md) · 📦 [릴리스](https://github.com/polarbear138/ruxt/releases) · 🌐 [소개 페이지](https://polarbear138.github.io/ruxt/) · 🇬🇧 [English README](README.md) · 🔒 [취약점 신고](SECURITY.md) · 📜 [제3자 구성 요소·라이선스](docs/THIRD_PARTY.md)
+* 📘 [사용자 가이드](docs/USER_GUIDE.md) · 🛡 [위협 모델](docs/THREAT_MODEL.md) · 📝 [변경 이력](CHANGELOG.md) · 📦 [릴리스](https://github.com/polarbear138/ruxt/releases) · 🌐 [소개 페이지](https://polar-dev-12.github.io/Ruxt/) · 🇬🇧 [English README](README.md) · 🔒 [취약점 신고](SECURITY.md) · 📜 [제3자 구성 요소·라이선스](docs/THIRD_PARTY.md)
 
 ![샘플 파일로 채운 SFTP 탐색기](docs/images/sftp-explorer.png)
 

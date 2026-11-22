@@ -1,7 +1,7 @@
 name: Site
 
 # Builds the landing page in site/ and publishes it to GitHub Pages (Settings → Pages →
-# Source: GitHub Actions). The page is served at https://<owner>.github.io/ruxt/.
+# Source: GitHub Actions). The page is served at https://<owner>.github.io/Ruxt/.
 on:
   push:
     branches: [main]
