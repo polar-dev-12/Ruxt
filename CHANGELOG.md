@@ -1,135 +1,141 @@
 # Changelog
 
-이 프로젝트는 [Semantic Versioning](https://semver.org/lang/ko/)을 따릅니다. 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 기준으로 합니다.
+English | [한국어](CHANGELOG.ko.md)
+
+This project follows [Semantic Versioning](https://semver.org/). The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
 ### Changed
-- **X 서버는 Ruxt를 켤 때 자동으로 시작하지 않습니다** (설정 → X 서버 → "시작 시", 기본 꺼짐). X11 포워딩 세션이 접속하거나 상태 표시줄에서 직접 켤 때만 시작합니다. 띄우기 직전에 Windows 방화벽 인바운드 차단 규칙을 한 번 묻습니다(UAC). 거부해도 서버는 쿠키만으로 켜지고, 상태 메뉴에 경고가 남습니다. 이미 저장된 설정에서 "시작 시"가 켜져 있으면 그 값은 유지됩니다.
+- **The X server no longer starts automatically with Ruxt** (Settings → X server → "On startup", off by default). It starts only when an X11-forwarding session connects or when you turn it on from the status bar. Right before it launches, Ruxt asks once to add a Windows Firewall inbound block rule (UAC). If you decline, the server still starts with cookie authentication only, and a warning stays in the status menu. If "On startup" is already on in your saved settings, that value is kept.
 
 ### Fixed
-- **Windows 릴리스 빌드**: Cargo 1.100의 빌드 디렉터리(`target/<triple>/<profile>/build/<패키지>/<해시>/out`)에서 `build.rs`가 내장 X 서버를 `...\release\build\xserver`로 찾아 `RUXT_REQUIRE_XSERVER=1` 빌드가 실패했습니다. 프로필 디렉터리(`target/<triple>/release/xserver`)를 다시 찾습니다.
+- **Windows release build**: with Cargo 1.100's build directory layout (`target/<triple>/<profile>/build/<package>/<hash>/out`), `build.rs` looked for the embedded X server in `...\release\build\xserver`, so builds with `RUXT_REQUIRE_XSERVER=1` failed. It now finds the profile directory (`target/<triple>/release/xserver`) again.
 
 ## [1.0.0] - 2026-11-21
 
-첫 안정 공개 버전입니다. 소스를 공개하고 일반 사용에 쓸 수 있는 기준으로 잡았습니다. 독립 보안 감사는 아직 없습니다.
+First stable public release. The source is now public, and this version is meant to be ready for everyday use. It has not had an independent security audit yet.
 
 ### Added
-- **소개 사이트의 문서 페이지** (`site/docs.html`): 설치, 세션, 터미널, Tail Viewer, SFTP, 터널, X11, 화면 잠금, 테마, 설정을 설명합니다. 언어를 고르지 않으면 영어이고, 소개 페이지와 같은 버튼으로 한국어를 볼 수 있습니다.
-- **기본 테마 10개**: 어두운 테마 말차·퍼플 그린·항구·잿불·잉크·소나무, 밝은 테마 밝음·백자·모래·민트·장미·라벤더. 설정 → 모양의 테마 목록에서 고릅니다. 퍼플 그린은 보라색 바탕에 초록 강조색입니다. 테마 편집기의 시작점 메뉴에도 같은 목록이 있습니다.
-- **에이전트 가드** (Windows, 도구 모음 토글·설정 → 보안, 기본 꺼짐): Ruxt 창을 스크린샷·녹화·화면 공유에서 숨기고, 프로그램이 주입한 키보드·마우스 입력(AI 에이전트, 매크로)을 버립니다. 화면 잠금 비밀번호가 있으면 차단과 동시에 창을 잠급니다. 입력 훅은 별도 crate `crates/ruxt-inputguard`에 있어 본체는 계속 `forbid(unsafe_code)`입니다.
-- 여러 줄 붙여넣기 확인 창에서 `Ctrl+Enter`로 바로 붙여넣기.
-- 설정의 외부 편집기를 드롭다운으로 선택(설치된 VS Code·Cursor·VSCodium·Zed·Sublime Text·Notepad++·메모장 등 자동 감지, 직접 입력·찾아보기).
+- **Documentation page** on the project site (`site/docs.html`) covering installation, sessions, the terminal, Tail Viewer, SFTP, tunnels, X11, screen lock, themes and settings. It shows English unless you pick a language; use the same toggle as the landing page to switch to Korean.
+- **10 new built-in themes, 12 in total**: dark (Matcha, Purple Green, Harbor, Ember, Ink, Pine) and light (Light, Porcelain, Sand, Mint, Rose, Lavender). Pick one from the theme list in Settings → Appearance. Purple Green has a purple background with green accents. The same list is also available as starting points in the theme editor.
+- **Agent Guard** (Windows; toolbar toggle or Settings → Security; off by default): hides the Ruxt window from screenshots, recordings and screen sharing, and drops synthetic keyboard and mouse input injected by programs such as AI agents and macros. If a screen lock password is set, the window also locks as soon as input is blocked. The input hook is in a separate crate, `crates/ruxt-inputguard`, so the main crate keeps `forbid(unsafe_code)`.
+- `Ctrl+Enter` in the multi-line paste confirmation dialog pastes right away.
+- **External editor dropdown** in Settings. It auto-detects installed editors such as VS Code, Cursor, VSCodium, Zed, Sublime Text, Notepad++ and Notepad. You can also type a path or browse for one.
 
 ### Changed
-- **데스크톱용 컴팩트 Material 3 크롬**: 버튼 테두리 대신 면의 밝기로 구역을 나누고, 보조 버튼은 호버 전에는 배경이 없는 고스트입니다. 툴바는 왼쪽 작업과 오른쪽 잠금·설정·도움말로 나뉘고, 탭 닫기는 탭 안에 있습니다. 상태바의 CPU·MEM·disk는 고정 폭 수치와 36×5px 미니 막대입니다.
-- **설정·데이터 폴더가 `%APPDATA%\ruxt\`, `%LOCALAPPDATA%\ruxt\`로 바뀌었습니다.** 이전 폴더에서 자동으로 옮기지 않습니다. 이전 설정을 계속 쓰려면 예전 `config` 폴더의 내용을 새 폴더로 복사하세요. 설치 프로그램의 제작사 이름은 `Ruxt`입니다.
-- 단축키 안내가 좁은 창에서 키 이름을 한 글자씩 세로로 쪼개던 문제를 고치고, 행 배경을 번갈아 넣어 읽기 쉽게 했습니다.
-- **터미널에서 `Ctrl+C`/`Ctrl+V`로 복사·붙여넣기**: 선택한 내용이 있으면 `Ctrl+C`가 복사하고 선택을 해제하며, 선택이 없으면 지금처럼 원격 프로그램에 인터럽트(^C)를 보냅니다. `Ctrl+V`는 붙여넣기입니다(셸의 ^V 입력은 쓸 수 없게 됨). `Ctrl+Shift+C/V`도 그대로 동작합니다.
-- **X 서버를 `ruxt.exe`에 내장**: Cygwin/X 트리(약 27 MB)가 실행 파일 안에 들어가, 설치 파일의 "X server" 구성 요소와 포터블 zip의 `xserver\` 폴더가 없어졌습니다(`ruxt.exe` 약 38 MB). 처음 X 서버를 켤 때 `%LOCALAPPDATA%\ruxt\data\xserver`에 풀고, 켤 때마다 모든 파일의 SHA-256과 `bin\`에 모르는 파일이 없는지 확인해 다르면 새로 풉니다. 설치 파일의 방화벽 차단 규칙도 이 경로를 가리키며, 이전 버전이 설치한 `{app}\xserver`는 업그레이드할 때 지웁니다. `ruxt.exe` 옆 `xserver\` 폴더와 `RUXT_XSERVER_DIR`는 그대로 우선합니다.
+- **Compact Material 3 chrome for desktop**: areas are separated by surface tone instead of button borders, and secondary buttons are ghost buttons with no background until you hover over them. The toolbar now has actions on the left and Lock/Settings/Help on the right, and the close button sits inside each tab. CPU, MEM and disk in the status bar use fixed-width numbers with 36×5px mini bars.
+- **Settings and data folders have moved to `%APPDATA%\ruxt\` and `%LOCALAPPDATA%\ruxt\`.** Existing data is not migrated automatically. To keep your previous settings, copy the contents of the old `config` folder into the new one. The installer's publisher name is now `Ruxt`.
+- **Shortcut help**: fixed key names being split vertically one character per line in narrow windows, and added alternating row backgrounds to make the list easier to read.
+- **`Ctrl+C`/`Ctrl+V` copy and paste in the terminal**: when text is selected, `Ctrl+C` copies it and clears the selection. With no selection it still sends an interrupt (^C) to the remote program. `Ctrl+V` pastes, so you can no longer send ^V to the shell. `Ctrl+Shift+C/V` still work.
+- **X server bundled into `ruxt.exe`**: the Cygwin/X tree (about 27 MB) is now embedded in the executable. This removes the "X server" installer component and the `xserver\` folder in the portable zip; `ruxt.exe` is now about 38 MB.
+  - The first time the X server starts, it is extracted to `%LOCALAPPDATA%\ruxt\data\xserver`.
+  - On every start, Ruxt checks the SHA-256 of every file and makes sure `bin\` has no unknown files. If anything differs, it extracts the files again.
+  - The installer's firewall block rule now points to this path, and the `{app}\xserver` folder installed by earlier versions is removed on upgrade.
+  - An `xserver\` folder next to `ruxt.exe`, or `RUXT_XSERVER_DIR`, still takes precedence.
 
 ### Fixed
-- 터미널에서 마우스로 끌어 선택할 때 시작 위치가 누른 곳보다 몇 픽셀 뒤로 잡혀 첫 글자가 빠지던 문제.
+- Mouse drag selection in the terminal started a few pixels after the point you clicked, so the first character was left out.
 
 ## [0.5.0] - 2026-10-30
 
 ### Added
-- **터미널 그림 문자를 직접 그림**: 상자 그리기(─│╭╮╔═), 블록(█▀▄░▒▓, 1/8 단위, 사분면), 점자(⣿), 2×3 블록(🬀 계열)을 글꼴 대신 칸 모양에 맞춰 그립니다. CLI 도구의 애니메이션이나 TUI 테두리가 어떤 글꼴에서도 칸 사이 틈 없이 이어지고, 점자처럼 Windows 글꼴에 없는 문자가 대체 기호(네모 안의 ?)로 나오던 문제가 없어졌습니다.
-- **기호·이모지 대체 글꼴**: 고른 글꼴과 한글 글꼴에 없는 기호(★ ✓ ⚡ ☀ ⇒ 등)와 이모지는 운영체제의 기호 글꼴(Windows: Segoe UI Symbol·Segoe UI Emoji, macOS: Apple Symbols, Linux: Noto Sans Symbols·DejaVu Sans)로 그립니다. 이모지는 단색으로 표시됩니다.
-- **처음 실행 둘러보기**: 첫 실행 때(화면 잠금 설정 창 다음) 슬라이드 6장으로 접속과 세션, 파일·터널·X11, 터미널 도구, 보안 설정, 단축키를 소개합니다. `←`/`→` 키와 페이지 점으로 넘기고, `?` → "둘러보기 다시 보기"로 다시 열 수 있습니다. 도움말 창의 단축키 표에도 링크 열기, 재연결, SFTP 키를 더했습니다.
-- **로그 감시 창 (Tail Viewer)**: 터미널에 친 단독 `tail` 명령(파이프·리디렉션 없이 파일 대상)을 가로채 별도 창에서 보여 주고 프롬프트는 비워 둡니다. SSH 탭은 같은 연결의 별도 채널로 터미널의 현재 폴더에서 실행하고, 로컬 셸 탭은 파일을 직접 따라 읽습니다. SFTP 파일 오른쪽 클릭 → "Tail Viewer로 보기"로도 열립니다.
-  - 일시정지(뒤에서 버퍼링), 자동 스크롤, 줄바꿈, 필터, 전체 복사, 다시 시작. 최근 5만 줄 보관.
-  - 키워드 감시: 쉼표로 여러 개, AND/OR, 일치 횟수, 창 깜빡임과 줄 강조, 일치한 줄로 이동, 감시한 줄만 보기.
-  - 일치한 줄을 `.txt` 파일에 실시간 기록(시각 포함 또는 원문).
-  - 별도 OS 창 또는 Ruxt 창 안에 고정(창 고정/새 창으로). 설정 → Terminal → Tail Viewer로 끌 수 있습니다(기본 켬).
-- **SFTP `..` 행**: 원격 목록과 로컬 창 맨 위에 상위 폴더로 가는 `..` 행이 항상 보입니다(더블클릭). 기존의 ↑ 버튼과 Backspace는 그대로입니다.
-- **소개 사이트** (`site/`): React + Vite 정적 페이지와 GitHub Pages 배포 워크플로.
-- **SFTP 체크박스 선택**: 모든 행 앞에 체크박스가 있어 Ctrl 없이 여러 항목을 고를 수 있고, 머리글의 체크박스로 보이는 항목 전체를 선택/해제합니다.
-- **폴더 전송 진행률**: 폴더를 내려받거나 올리거나 복사할 때 먼저 파일 수와 크기를 세고("세는 중… n개"), 진행률을 전체 기준 `37/120 · 700 MB / 2.0 GB`로 보여 줍니다(이전에는 파일 하나씩 0→100%가 반복됨). 파일 수 세기는 5만 개에서 멈춥니다.
+- **Terminal drawing characters are rendered directly**: box drawing (─│╭╮╔═), blocks (█▀▄░▒▓, eighths, quadrants), Braille (⣿) and 2×3 sextants (the 🬀 range) are drawn to fit the cell instead of coming from the font. CLI animations and TUI borders now join up with no gaps in any font, and characters missing from Windows fonts, such as Braille, no longer show up as a replacement glyph (a ? in a box).
+- **Fallback fonts for symbols and emoji**: symbols (★ ✓ ⚡ ☀ ⇒ and so on) and emoji that are missing from the chosen font and the Korean font are drawn with the OS symbol fonts (Windows: Segoe UI Symbol, Segoe UI Emoji; macOS: Apple Symbols; Linux: Noto Sans Symbols, DejaVu Sans). Emoji are shown in a single color.
+- **First-run tour**: on first launch (after the screen lock setup dialog), six slides introduce connecting and sessions, files/tunnels/X11, terminal tools, security settings and shortcuts. Move between slides with `←`/`→` or the page dots, and reopen the tour from `?` → "Show the tour again". The shortcut table in the help window now also lists opening links, reconnecting and the SFTP keys.
+- **Tail Viewer**: a plain `tail` command typed in the terminal (targeting a file, with no pipes or redirection) is intercepted and shown in a separate window, leaving the prompt free. In SSH tabs it runs over a separate channel on the same connection, in the terminal's current folder; in local shell tabs it follows the file directly. You can also open it by right-clicking a file in SFTP → "Open in Tail Viewer".
+  - Pause (keeps buffering in the background), auto-scroll, line wrap, filter, copy all and restart. Keeps the last 50,000 lines.
+  - Keyword watch: several comma-separated keywords, AND/OR, match count, window flash and line highlight, jump to matching lines, and a matches-only view.
+  - Write matching lines to a `.txt` file in real time (with timestamps or as-is).
+  - Use it as a separate OS window or pin it inside the Ruxt window (Pin to window / Open in new window). You can turn it off in Settings → Terminal → Tail Viewer (on by default).
+- **SFTP `..` row**: the remote list and the local pane always show a `..` row at the top that goes to the parent folder (double-click). The existing ↑ button and Backspace still work.
+- **Project site** (`site/`): a static React + Vite page and a GitHub Pages deployment workflow.
+- **SFTP checkbox selection**: every row has a checkbox, so you can select several items without Ctrl, and the header checkbox selects or clears every visible item.
+- **Folder transfer progress**: when downloading, uploading or copying a folder, Ruxt first counts the files and their size ("Counting… n items") and then shows overall progress such as `37/120 · 700 MB / 2.0 GB` (previously each file went from 0 to 100% on its own). Counting stops at 50,000 files.
 
 ### Security
-- **동봉 X 서버를 X.Org 21.1.25로 올림** (기존 21.1.21): 21.1.22~21.1.25의 보안 수정(Xi barrier·GLX RenderLarge 범위 검사, glyphset·present use-after-free, XKB 메모리 오류 등)이 포함됩니다. 포워딩된 원격 X 클라이언트가 X 서버를 공격하는 경로에 해당합니다. Cygwin 미러에는 아직 21.1.21만 있어서 `XWin.exe`만 Cygwin/X 소스 태그 `xserver-cygwin-21.1.25-1`에서 빌드하고, 데이터·DLL은 미러의 패키지를 씁니다.
+- **Bundled X server upgraded to X.Org 21.1.25** (from 21.1.21): includes the security fixes in 21.1.22–21.1.25 (bounds checks in Xi barriers and GLX RenderLarge, use-after-free fixes in glyphsets and Present, XKB memory errors, and more). These cover attacks on the X server by forwarded remote X clients. The Cygwin mirror still only has 21.1.21, so only `XWin.exe` is built from the Cygwin/X source tag `xserver-cygwin-21.1.25-1`; data files and DLLs come from the mirror packages.
 
 ### Changed
-- **명령어 기록 암호화**: 자동 완성용 명령어 기록(`history.db`)은 이제 화면 잠금 비밀번호가 있을 때만 남고, 줄마다 XChaCha20-Poly1305로 암호화됩니다. 키는 저장된 비밀번호와 같은 저장소(`vault.bin`)에 들어 있어 잠금이 풀려 있을 때만 읽히고, 잠기면 메모리에서 지워집니다. 이전 버전의 평문 기록은 첫 잠금 해제 때 암호화해 옮기고 평문은 지웁니다. 화면 잠금을 해제하면 기록도 삭제됩니다.
-- **감사 로그는 기본으로 꺼짐**: 설정 → 보안에 "감사 로그 남기기"를 추가했고 새로 설치하면 꺼져 있습니다(필요하면 켬). 끄면 새 기록만 멈추고, 끄고 켠 사실은 로그에 남습니다. 위협 모델에 감사 로그·명령어 기록·설정 파일이 평문 메타데이터이며 디스크 보호는 OS 디스크 암호화에 의존한다는 점을 명시했습니다.
-- **표기를 "Ruxt"로 통일**: 창 제목, 설치 파일, 문서의 이름을 `ruXt`에서 `Ruxt`로 바꿨습니다. 실행 파일(`ruxt.exe`)과 설정 폴더 경로는 그대로입니다. X 서버 방화벽 규칙 이름도 `Ruxt X server (block inbound)`로 바뀌었으므로, 이전 이름의 규칙이 있으면 X 메뉴가 규칙이 없다고 안내합니다(다시 추가하면 됨).
-- **서버 정보·SFTP 보기 설정을 세션별로 저장**: 서버 정보 창에서 켜거나 끈 상태 모니터링과 조회 주기, SFTP의 "숨김 항목" 표시가 그 세션에 저장되어 다음 연결 때 그대로 적용됩니다. 전에는 모니터링 체크가 그 탭에서만 유지됐고, 조회 주기는 모든 세션이 공유하는 전역 값을 바꿨으며, 숨김 항목은 매번 꺼진 채로 시작했습니다. 세션 편집기에서도 조회 주기를 정할 수 있습니다(0 = 설정의 기본 주기). 설정의 모니터링 스위치를 바꿀 때 세션에서 끈 모니터링이 다시 켜지던 문제도 함께 고쳤습니다.
-- 툴바의 "Multi-exec"를 영어 화면에서 **Broadcast input**으로 바꿨습니다(한국어는 그대로 "동시 입력").
-- README와 패키지 설명을 Ruxt 자체 소개로 바꾸고, MobaXterm 비교는 README의 "MobaXterm에서 옮겨 오는 분께" 항목으로 옮겼습니다.
-- **"자격증명 금고"를 화면 잠금에 합침**: 별도의 금고 마스터 비밀번호와 금고 열기/잠그기가 없어졌습니다. 세션 비밀번호·키 패스프레이즈는 화면 잠금(이전 이름 "앱 잠금") 비밀번호로 암호화해 저장하고, 잠금이 풀려 있을 때만 씁니다. 전에는 금고를 잠가도 키·에이전트 인증이나 직접 입력으로 그대로 접속돼 잠금의 의미가 모호했습니다.
-  - 화면 잠금 비밀번호가 있으면 Ruxt는 잠긴 상태로 시작합니다. 잠금 비밀번호가 없으면 비밀번호를 저장하지 않습니다.
-  - 잠금 비밀번호를 바꾸면 저장된 비밀번호를 새 비밀번호로 다시 암호화하고, 잠금을 해제하면 저장된 비밀번호도 삭제합니다.
-  - 이전 버전의 금고는 처음 잠금을 풀 때 예전 마스터 비밀번호를 한 번 물어 옮깁니다(나중에 설정 → 보안에서도 가능, 잊었으면 삭제 후 새로 시작). 잠금 비밀번호 없이 금고만 쓰던 경우 시작 시 잠금 비밀번호 설정을 한 번 더 제안합니다.
-  - 도구 모음의 금고 버튼과 설정의 "자격증명 금고"·"금고 자동 잠금"을 없앴습니다(`auto_lock_minutes` 설정은 무시됨).
-- **켜짐/꺼짐 버튼이 상태에 따라 모양이 뒤바뀜**: 툴바의 세션·찾기·SFTP·터널·동시 입력·X 서버·금고·설정·`?`와 로그 보기의 일시 정지가, 켜지면 강조색으로 채워지고 체크 표시가 붙으며 꺼지면 외곽선만 남습니다(Material 필터 칩). 전에는 켜진 상태가 옅은 배경색뿐이라 구분이 어려웠습니다. 채운 버튼의 글자색은 WCAG 대비가 더 큰 쪽(검정/흰색)으로 고릅니다.
-- 하단 상태 표시줄에서 호스트 키 지문과 `인증: publickey` 표시를 뺐습니다. 연결된 SSH 탭에는 서버 상태 요약(모니터가 꺼져 있으면 `서버 정보`)이 항상 보이고, 클릭하면 서버 정보 창이 열립니다.
-- **도움말 및 정보 창**(`?`)을 Material 3 구성으로 다시 만들었습니다: 버전 칩, 문서 링크 버튼(채움·외곽선·텍스트), 보안 특성 목록 카드(제목 + 설명), 단축키 카드(키캡 표). 터미널 찾기·스크롤·자동 완성 단축키도 추가했습니다.
+- **Encrypted command history**: the command history used for autocomplete (`history.db`) is now kept only when a screen lock password is set, and each line is encrypted with XChaCha20-Poly1305. The key lives in the same store as the saved passwords (`vault.bin`), so it can only be read while unlocked and is wiped from memory on lock. Plaintext history from earlier versions is encrypted and migrated on the first unlock, and the plaintext is deleted. Removing the screen lock also deletes the history.
+- **Audit log is off by default**: Settings → Security has a new "Keep an audit log" option, off on new installs (turn it on if you need it). Turning it off only stops new entries, and toggling it is itself logged. The threat model now states that the audit log, command history and settings files are plaintext metadata, and that protecting them on disk relies on OS disk encryption.
+- **Name standardized as "Ruxt"**: the window title, installer and docs now say `Ruxt` instead of `ruXt`. The executable (`ruxt.exe`) and the settings folder path are unchanged. The X server firewall rule is now named `Ruxt X server (block inbound)`, so if you have a rule with the old name, the X menu will say the rule is missing (just add it again).
+- **Server info and SFTP view settings are saved per session**: status monitoring and its polling interval set in the server info window, and the "Hidden items" toggle in SFTP, are saved to that session and applied on the next connection. Previously the monitoring checkbox only lasted for that tab, the polling interval changed a global value shared by every session, and hidden items always started off. The session editor can also set the polling interval (0 = the default from Settings). Also fixed monitoring that was turned off for a session turning back on when the monitoring switch in Settings changed.
+- The "Multi-exec" toolbar button is now **Broadcast input** in the English UI (the Korean label "동시 입력" is unchanged).
+- The README and package description now introduce Ruxt on its own; the MobaXterm comparison moved to the README's "Coming from MobaXterm" section.
+- **The credential vault is merged into screen lock**: the separate vault master password and vault open/lock are gone. Session passwords and key passphrases are encrypted with the screen lock (formerly "app lock") password and used only while unlocked. Previously you could still connect with key/agent authentication or by typing a password while the vault was locked, so locking it had unclear meaning.
+  - If a screen lock password is set, Ruxt starts locked. Without a screen lock password, passwords are not saved.
+  - Changing the screen lock password re-encrypts saved passwords with the new one, and removing the screen lock deletes saved passwords.
+  - A vault from an earlier version is migrated on the first unlock by asking once for the old master password (you can also do this later in Settings → Security, or delete it and start over if you forgot it). If you used only the vault without a screen lock password, Ruxt offers once more at startup to set one.
+  - Removed the vault button from the toolbar and "Credential vault" and "Vault auto-lock" from Settings (the `auto_lock_minutes` setting is ignored).
+- **On/off buttons change appearance with their state**: Sessions, Find, SFTP, Tunnels, Broadcast input, X server, Vault, Settings and `?` in the toolbar, and Pause in the log viewer, are filled with the accent color and show a check mark when on, and only outlined when off (Material filter chips). Previously the on state was just a faint background and hard to tell apart. Text on filled buttons uses whichever of black or white has the higher WCAG contrast.
+- Removed the host key fingerprint and `Auth: publickey` from the bottom status bar. Connected SSH tabs always show a server status summary (`Server info` when monitoring is off), which opens the server info window when clicked.
+- Rebuilt the **Help and About window** (`?`) with Material 3 components: a version chip, documentation link buttons (filled, outlined, text), a card listing security properties (title + description) and a shortcuts card (keycap table). Added shortcuts for terminal find, scrolling and autocomplete.
 
 ### Fixed
-- **X 서버가 시작 직후 먹통이 되던 문제**: XWin은 포트를 연 직후(내부 창 관리자가 붙기 전, 약 1초)에 들어온 연결이 있으면 이후 모든 클라이언트에 응답하지 않습니다(21.1.21·21.1.25 모두 재현). Ruxt의 시작 확인과 디스플레이 탐색이 바로 그 시점에 포트에 접속하고 있었습니다. 이제 시작 확인은 XWin 로그의 준비 완료 줄을 보고(최대 10초), 그동안 그 포트에는 아무것도 접속하지 않으며, X11 포워딩·비신뢰 쿠키 발급은 준비될 때까지 기다립니다. 실제 X 서버 테스트가 2/5 → 8/8로 안정됐습니다.
-- `installeretch-xserver.ps1`: gitlab.freedesktop.org가 PowerShell 기본 User-Agent(`Mozilla/…`)에 Anubis 봇 확인 페이지를 돌려줘 소스 해시 검사에서 실패하던 문제. 비브라우저 User-Agent로 받고, HTML이 오면 그렇다고 알려 줍니다.
-- **금고 잠금·열기**: 첫 실행 때 금고 열기 창과 앱 잠금 설정 창이 동시에 떠서, 금고 비밀번호 칸이 매 프레임 포커스를 빼앗아 다른 창에 입력이 들어가던 문제. 이제 앱 잠금 창이 먼저 뜨고 금고 창은 그 뒤에 나오며, 포커스는 처음 한 번(또는 틀린 비밀번호 뒤)만 잡습니다.
-- 앱 잠금이 금고를 함께 잠근 경우 잠금을 풀면 금고 열기 창을 다시 띄웁니다. 키 유도 중에 앱이 잠기면 결과를 버리고 금고를 잠긴 채로 둡니다.
-- 툴바·설정에서 금고를 잠그면 "금고를 잠갔습니다" 알림을 보이고, 열려 있던 마스터 비밀번호 변경 창을 닫습니다(자동 잠금도 동일).
-- 전송 목록에서 이름 길이에 따라 진행률 막대와 취소 버튼이 좌우로 움직이던 문제: 이름 칸을 고정 폭에서 잘라 보여 주고(전체 이름은 툴팁) 막대와 버튼 위치를 고정했습니다.
-- SFTP 새로 고침 아이콘 모양을 다시 그렸습니다(270° 원호와 접선 방향 화살촉).
+- **X server becoming unresponsive right after starting**: if XWin receives a connection right after opening its port (about one second, before its internal window manager attaches), it stops responding to every client afterward (reproduced on both 21.1.21 and 21.1.25). Ruxt's startup check and display discovery were connecting to the port at exactly that moment. The startup check now watches XWin's log for the ready line (up to 10 seconds), nothing connects to that port in the meantime, and X11 forwarding and untrusted cookie generation wait until it is ready. Real X server tests went from 2/5 to 8/8 passing.
+- `installer\fetch-xserver.ps1`: gitlab.freedesktop.org returned an Anubis bot-check page to PowerShell's default User-Agent (`Mozilla/…`), so the source hash check failed. It now downloads with a non-browser User-Agent and says so if it gets HTML back.
+- **Vault lock/unlock**: on first launch the vault unlock dialog and the app lock setup dialog appeared at the same time, and the vault password field stole focus every frame, so typing went into the wrong dialog. The app lock dialog now appears first and the vault dialog after it, and focus is grabbed only once (or after a wrong password).
+- If app lock also locked the vault, unlocking now shows the vault unlock dialog again. If the app locks during key derivation, the result is discarded and the vault stays locked.
+- Locking the vault from the toolbar or Settings shows a "Vault locked" notification and closes the master password change dialog if it is open (the same applies to auto-lock).
+- Progress bars and cancel buttons in the transfer list shifted sideways depending on name length: the name column is now a fixed width and truncated (full name in a tooltip), and the bar and button stay in place.
+- Redrew the SFTP refresh icon (a 270° arc with a tangent arrowhead).
 
 ## [0.3.0] - 2026-10-29
 
 ### Added
-- **서버 상태 모니터**: 연결된 서버에서 몇 초마다 읽기 전용 스크립트(hostname, uptime, `/proc/stat`, `/proc/meminfo`, `df`)를 기존 SSH 세션의 exec 채널로 실행해 CPU·메모리·스왑·디스크·부하·사용자·프로세스 수를 하단 상태 표시줄에 요약하고(`CPU 12%  MEM 61%  load 0.42  disk 46%`), 클릭하면 **서버 정보** 창(연결 정보: 주소·인증 방법·호스트 키 지문·보안 프로필·점프 호스트·포워딩/터널, 서버 상태: 스파크라인과 막대)이 열립니다. 호스트 키 지문을 클릭해도 같은 창이 열립니다. 설정 → 서버 상태에서 켜고 끄거나 주기(2~120초)를 바꿀 수 있고, exec를 거부하는 서버는 감지해서 그 세션의 모니터링을 멈춥니다. 서버 출력은 크기 제한·제어 문자 제거 후 방어적으로 파싱합니다.
-- **명령어 자동 완성**: 실행한 명령줄을 SQLite(`history.db`, 소유자 전용 권한)에 저장하고 시작 시 메모리에 올려 입력 중 흐린 글씨(ghost text)와 후보 목록으로 제안합니다. `→` 수락, `Ctrl+↑/↓` 후보 선택, `Esc` 숨김. 같은 호스트에서 쓴 명령을 먼저 보여 주고 사용 횟수·최근 순으로 정렬합니다. 기록 여부는 **터미널 격자에 실제로 표시된 글자**로 판단하므로 비밀번호 프롬프트처럼 에코되지 않은 입력은 저장되지 않으며, `password=`·`token=`·`Authorization:`·`*_SECRET=` 같은 비밀로 보이는 줄과 공백으로 시작하는 줄도 건너뜁니다(`HISTCONTROL=ignorespace`와 같음). 대체 화면(vim 등)에서는 동작하지 않습니다. 최대 2만 개, 설정에서 끄거나 전부 지울 수 있습니다.
-- **X11 비신뢰(untrusted) 포워딩이 기본값**: 세션의 X11 포워딩은 이제 `ssh -X`처럼 X SECURITY 확장으로 발급한 **비신뢰 쿠키**를 원격 클라이언트에 적용해 다른 창 읽기·키 입력 가로채기를 막습니다. 세션 편집기의 **신뢰 모드(-Y)** 를 켜면 이전처럼 전체 접근을 허용합니다(경고 표시). X 서버에 SECURITY 확장이 없으면 포워딩을 거부하고 터미널에 이유와 해결 방법을 알립니다. 비신뢰 인증은 세션 종료 시 취소됩니다.
-- **X 서버 방화벽 규칙**: X.org는 루프백 전용으로 들을 수 없어(`-listen tcp`는 모든 인터페이스에 바인드) TCP 6000+n 포트가 LAN에 노출됩니다. 설치 파일(관리자 설치)이 `XWin.exe`에 대한 Windows 방화벽 인바운드 **차단** 규칙을 추가하고(루프백은 필터링되지 않아 Ruxt 브리지는 그대로 동작), Ruxt의 X 메뉴가 규칙이 없으면 경고하고 UAC 확인으로 추가할 수 있습니다.
-- **보안 프로필 "레거시"**: `ssh-rsa`(RSA/SHA-1) 호스트 키 서명이 필요한 OpenSSH 7.2 이전 서버용.
+- **Server status monitor**: every few seconds, Ruxt runs a read-only script (hostname, uptime, `/proc/stat`, `/proc/meminfo`, `df`) on the connected server over an exec channel on the existing SSH session, and summarizes CPU, memory, swap, disk, load, users and process count in the bottom status bar (`CPU 12%  MEM 61%  load 0.42  disk 46%`). Clicking it opens the **Server info** window (connection info: address, auth method, host key fingerprint, security profile, jump hosts, forwards/tunnels; server status: sparklines and bars). Clicking the host key fingerprint opens the same window. Turn it on or off and change the interval (2–120 seconds) in Settings → Server status. Servers that refuse exec are detected and monitoring stops for that session. Server output is parsed defensively, with a size limit and control characters stripped.
+- **Command autocomplete**: commands you run are saved to SQLite (`history.db`, owner-only permissions), loaded into memory at startup, and suggested as you type with ghost text and a candidate list. `→` accepts, `Ctrl+↑/↓` picks a candidate, `Esc` hides. Commands used on the same host come first, then by use count and recency. Whether to record is decided from **the characters actually shown on the terminal grid**, so input that is not echoed, such as at password prompts, is never saved. Lines that look like secrets (`password=`, `token=`, `Authorization:`, `*_SECRET=` and so on) and lines starting with a space are skipped (same as `HISTCONTROL=ignorespace`). It does not work in the alternate screen (vim and so on). Up to 20,000 entries; you can turn it off or clear everything in Settings.
+- **Untrusted X11 forwarding is now the default**: a session's X11 forwarding now gives remote clients an **untrusted cookie** issued through the X SECURITY extension, like `ssh -X`, which stops them from reading other windows or capturing keystrokes. Turning on **Trusted mode (-Y)** in the session editor allows full access as before (with a warning). If the X server has no SECURITY extension, forwarding is refused and the terminal explains why and how to fix it. Untrusted authorizations are revoked when the session ends.
+- **X server firewall rule**: X.org cannot listen on loopback only (`-listen tcp` binds every interface), so TCP port 6000+n is exposed to the LAN. The installer (admin install) adds a Windows Firewall inbound **block** rule for `XWin.exe` (loopback is not filtered, so Ruxt's bridge still works), and Ruxt's X menu warns when the rule is missing and can add it after a UAC prompt.
+- **"Legacy" security profile**: for servers older than OpenSSH 7.2 that need `ssh-rsa` (RSA/SHA-1) host key signatures.
 
-- **사용자 지정 테마**: 설정 → 모양에서 **새 테마…** 로 테마 편집기를 열어 UI 색(패널·창·입력란·버튼·글자·강조·선택·링크·경고·오류·테두리)과 터미널 색(글자·배경·커서·ANSI 16색)을 색상 선택기로 고르고 이름을 붙여 저장합니다. 바꾸는 즉시 미리 보이고, 취소하면 이전 테마로 돌아갑니다. 테마는 설정과 함께 저장되며(최대 32개) **내보내기/가져오기**로 `*.ruxt-theme.json`(`#rrggbb` 색, 손으로 편집 가능, 일부 색만 적어도 됨)을 주고받을 수 있습니다. 기본 테마 말차/밝음도 같은 형식이라 시작점으로 쓸 수 있습니다.
-- **UI/UX 정리(Material 3 원칙)**: 모든 창과 모달이 **화면보다 커지지 않고**(뷰포트에 맞춰 최대 크기 제한, 크기 조절 가능, 본문 스크롤) 작은 창에서도 버튼이 보입니다. 설정·세션 편집기·서버 정보는 제목 있는 **섹션 카드**(톤 표면, 둥근 모서리, 줄무늬 행)로 나뉘고, 대화상자 버튼은 **채움(확인) / 외곽선(보조) / 텍스트(취소)** 위계와 오른쪽 정렬을 따르며, 위험한 확인은 오류색 채움 버튼입니다. 간격 8dp 그리드, 모서리 반경 8/12, 그림자, 구분선이 전체적으로 통일됐습니다. 사용자 테마의 색이 이 모든 표면에 적용됩니다.
-- **동봉 Cygwin/X를 SECURITY 확장과 함께 직접 빌드**: Cygwin이 배포하는 `xorg-server` 패키지는 `-Dxcsecurity`가 꺼져 있어 비신뢰 X11 포워딩이 불가능했습니다. `installer\fetch-xserver.ps1`이 이제 Cygwin 빌드 도구를 받아 `xserver-cygwin-21.1.21-1` 소스를 `-Dxcsecurity=true`로 다시 빌드한 `XWin.exe`를 동봉합니다(빌드 문자열에 `XCSECURITY` 표기). 비신뢰 인증의 유효 기간은 마지막 클라이언트 종료 후 7일로 제한됩니다(X 서버의 타이머가 49일 이상에서 넘쳐 서버가 죽는 문제를 확인).
+- **Custom themes**: in Settings → Appearance, **New theme…** opens the theme editor, where you pick UI colors (panels, windows, inputs, buttons, text, accent, selection, links, warnings, errors, borders) and terminal colors (text, background, cursor, the 16 ANSI colors) with color pickers, then name and save the theme. Changes preview live, and canceling goes back to the previous theme. Themes are saved with your settings (up to 32), and **Export/Import** exchanges them as `*.ruxt-theme.json` (`#rrggbb` colors, hand-editable, you can list only some colors). The built-in Matcha and Light themes use the same format, so you can use them as starting points.
+- **UI/UX cleanup (Material 3 principles)**: no window or modal **grows larger than the screen** (maximum size fits the viewport, resizable, scrolling body), so buttons stay visible in small windows. Settings, the session editor and server info are split into titled **section cards** (tonal surfaces, rounded corners, striped rows). Dialog buttons follow a **filled (confirm) / outlined (secondary) / text (cancel)** hierarchy, aligned right, and dangerous confirmations use an error-colored filled button. The 8dp spacing grid, 8/12 corner radii, shadows and dividers are consistent throughout. Custom theme colors apply to all of these surfaces.
+- **Bundled Cygwin/X built with the SECURITY extension**: Cygwin's `xorg-server` package is built with `-Dxcsecurity` off, so untrusted X11 forwarding was impossible. `installer\fetch-xserver.ps1` now downloads the Cygwin build tools and bundles an `XWin.exe` rebuilt from the `xserver-cygwin-21.1.21-1` source with `-Dxcsecurity=true` (the build string shows `XCSECURITY`). Untrusted authorizations expire 7 days after the last client exits (we found that the X server's timer overflows past 49 days and crashes the server).
 
-- **종료 확인에 "다음부터 묻지 않기"**: 연결된 탭을 닫거나 세션이 살아 있는 채로 종료할 때 뜨는 확인 창에 체크 상자가 생겼습니다. 체크하고 확인하면 이후 묻지 않으며, 설정 → 보안의 "연결된 세션을 닫거나 … 종료할 때 확인"으로 다시 켤 수 있습니다.
+- **"Don't ask again" on exit confirmation**: the confirmation shown when closing a connected tab or quitting with live sessions now has a checkbox. Check it and confirm to stop asking; you can turn it back on with "Confirm when closing or … quitting with connected sessions" in Settings → Security.
 
-- **보안 점검 후속 조치**:
-  - Windows 오류 보고(WER)에서 `ruxt.exe`를 제외 등록합니다(시작 시 `HKCU` 레지스트리, 관리자 권한 불필요). 크래시 덤프에 열린 금고·비밀번호·스크롤백이 담겨 업로드되는 경로를 막습니다.
-  - 원격 편집 임시 파일을 `%TEMP%` 대신 `%LOCALAPPDATA%\ruxt\data\edit\`에 두고 Windows 검색 인덱싱에서 제외합니다.
-  - 설정 → 보안: **클립보드 자동 지우기**(Ruxt가 복사한 내용이 아직 클립보드에 있으면 N초 뒤 삭제), **유휴 N분 뒤 모든 세션 끊기**, **명령어 기록·감사 로그 보관 기간**(기본 90일/180일, 시작 시 정리).
-  - 서버 상태 모니터는 이제 **세션별 동의**가 필요합니다(세션 편집기의 "서버 상태 모니터링", 기본 꺼짐). 전역 설정은 마스터 스위치 역할만 합니다.
-  - `fetch-xserver.ps1`이 X 서버 소스 tarball의 SHA-256을 고정해 검증합니다.
-- **X 서버 UX**: Ruxt 시작 시 동봉 X 서버를 자동으로 띄웁니다(설정 → X 서버 → "시작 시", 기본 켬). X 서버를 **창 없이** 실행합니다: XWin은 GUI 서브시스템이라 생성 플래그로는 숨겨지지 않고 Cygwin 런타임이 콘솔을 새로 만들어(Windows 11에서는 Windows Terminal 창으로) 떴던 것을, 창 없는 `cmd.exe` 콘솔을 거쳐 띄워 해결했습니다. 종료 시 XWin이 남긴 복제 자식까지 **프로세스 트리 전체**를 끝내고, 비정상 종료로 남은 서버는 다음 실행 때 `xserver.pid`와 부모 생존 여부로 찾아 정리한 뒤 새로 띄웁니다(이전에는 외부 서버로 오인해 옆에 하나 더 띄웠음). 도구 모음·상태 표시줄의 X 서버 상태가 번역된 문구("X 서버: 실행 중 (:0)")로 바뀌었습니다.
-- **키 생성**: 패스프레이즈가 필수(8자 이상)가 되었고, **무작위 패스프레이즈 생성** 버튼이 24자(4×6, 혼동 문자 제외)를 만들어 한 번 보여 줍니다.
-
-### Changed
-- **VcXsrv / Xming 지원 제거**: X 서버는 동봉 Cygwin/X(`XWin.exe`)만 씁니다(설정의 실행 파일 경로도 `XWin.exe`만 받음). 비신뢰 X11 포워딩에 필요한 SECURITY 확장과 X.org 최신 릴리스 추종을 한 서버로 보장하기 위해서입니다.
-- **호환** 보안 프로필에서 `ssh-rsa`(RSA/SHA-1) 호스트 키 서명을 제거했습니다(russh 기본값에 포함되어 있었음). SHA-1이 꼭 필요한 서버는 새 **레거시** 프로필을 쓰세요.
-- **앱 잠금**: 처음 실행 때 비밀번호 설정을 제안하고, 설정하면 유휴 10분(기본, 설정 → 보안에서 0 = 끔 또는 10분 단위로 조절) 후 창 전체가 잠깁니다. 도구 모음 `잠금` 버튼으로 바로 잠글 수도 있습니다. 잠기면 금고도 함께 잠기고, 세션은 뒤에서 계속 실행됩니다. 비밀번호는 `applock.bin`에 Argon2id 검증값으로만 저장되며 실패할 때마다 다음 확인이 지연됩니다. 비밀번호 변경·해제는 현재 비밀번호가 필요합니다.
-- **설정 → 모양**: 화면 배율(75~200 %)과 메뉴·창 글꼴 크기(9~24 pt) 슬라이더. 터미널 글꼴 크기와는 별개이며, 마우스를 놓을 때 적용됩니다.
+- **Security review follow-ups**:
+  - `ruxt.exe` is excluded from Windows Error Reporting (WER) (registered under `HKCU` at startup, no admin rights needed). This keeps crash dumps containing an open vault, passwords or scrollback from being uploaded.
+  - Temporary files for remote editing are kept in `%LOCALAPPDATA%\ruxt\data\edit\` instead of `%TEMP%` and excluded from Windows Search indexing.
+  - Settings → Security: **Auto-clear clipboard** (deletes content Ruxt copied after N seconds if it is still on the clipboard), **Disconnect all sessions after N idle minutes**, and **retention periods for command history and the audit log** (90/180 days by default, cleaned up at startup).
+  - The server status monitor now requires **per-session consent** ("Server status monitoring" in the session editor, off by default). The global setting acts only as a master switch.
+  - `fetch-xserver.ps1` pins and verifies the SHA-256 of the X server source tarball.
+- **X server UX**: Ruxt starts the bundled X server automatically at launch (Settings → X server → "On startup", on by default). The X server now runs **without a window**: XWin is a GUI-subsystem program, so creation flags did not hide it, and the Cygwin runtime opened a new console (a Windows Terminal window on Windows 11). It is now launched through a windowless `cmd.exe` console. On exit Ruxt ends the **whole process tree**, including forked children left by XWin, and a server left behind by a crash is found on the next launch via `xserver.pid` and whether its parent is alive, cleaned up, and replaced (previously it was mistaken for an external server and a second one was started next to it). The X server status in the toolbar and status bar now uses translated text ("X server: running (:0)").
+- **Key generation**: a passphrase is now required (at least 8 characters), and the **Generate random passphrase** button creates a 24-character one (4×6, without easily confused characters) and shows it once.
 
 ### Changed
-- **X 서버**: VcXsrv(마지막 릴리스 2025-03) 대신 X.org 포인트 릴리스를 계속 따라가는 **Cygwin/X(`XWin.exe`)를 동봉**합니다. `installer\fetch-xserver.ps1`이 Cygwin 미러에서 최소 구성(`xorg-server` + 의존성)을 받아 `target\release\xserver\`에 만들고, 설치 파일에는 선택 구성 요소 "X server"로 들어갑니다. Ruxt는 동봉 트리 → 사용자 지정 경로 → 설치된 VcXsrv/Xming 순서로 찾습니다(`RUXT_XSERVER_DIR`로 동봉 위치 지정). XWin은 `-listen tcp -nolisten inet6 -auth <무작위 쿠키>`로 시작하며 `-ac`는 쓰지 않습니다.
+- **VcXsrv / Xming support removed**: only the bundled Cygwin/X (`XWin.exe`) is used (the executable path in Settings also accepts only `XWin.exe`). This guarantees, with a single server, the SECURITY extension needed for untrusted X11 forwarding and tracking of the latest X.org releases.
+- Removed `ssh-rsa` (RSA/SHA-1) host key signatures from the **Compatible** security profile (they were included in the russh defaults). Use the new **Legacy** profile for servers that require SHA-1.
+- **App lock**: Ruxt offers to set a password on first launch. Once set, the whole window locks after 10 idle minutes (default; set 0 = off or steps of 10 minutes in Settings → Security). You can also lock right away with the toolbar `Lock` button. Locking also locks the vault, and sessions keep running in the background. The password is stored in `applock.bin` only as an Argon2id verifier, and each failure delays the next attempt. Changing or removing the password requires the current password.
+- **Settings → Appearance**: sliders for UI scale (75–200%) and menu/window font size (9–24 pt). These are separate from the terminal font size and apply when you release the mouse.
+
+### Changed
+- **X server**: instead of VcXsrv (last release 2025-03), Ruxt now **bundles Cygwin/X (`XWin.exe`)**, which keeps up with X.org point releases. `installer\fetch-xserver.ps1` downloads a minimal set (`xorg-server` and its dependencies) from a Cygwin mirror into `target\release\xserver\`, and the installer includes it as the optional "X server" component. Ruxt looks for the bundled tree first, then a custom path, then an installed VcXsrv/Xming (`RUXT_XSERVER_DIR` sets the bundled location). XWin starts with `-listen tcp -nolisten inet6 -auth <random cookie>` and never uses `-ac`.
 
 ## [0.2.0] - 2026-10-29
 
 ### Added
-- **UI 언어**: 한국어(기본) / English 전환(설정 → 모양 → 언어). 모든 창·대화상자·메뉴가 한 언어로 통일됩니다.
-- **SFTP 탐색기**: 윈도우 탐색기 스타일 재작성 — 뒤로/앞으로/상위, 클릭하면 입력할 수 있는 경로 표시줄, 폴더 트리, 정렬 가능한 세부 정보 열(이름·수정한 날짜·유형·크기·권한), 그려진 아이콘, Ctrl/Shift 다중 선택, 키보드 탐색(Backspace·Enter·F2·Delete·F5·Alt+←/→·Ctrl+A).
-- **SFTP 로컬 창**: 내 PC 폴더를 나란히 보고 드래그로 업로드/다운로드. 원격 간 **잘라내기·복사·붙여넣기**, 폴더 행이나 트리 노드로 **드래그해 이동**, 서버 안 복사(`Copy`)와 일괄 이동(`Move`) 명령.
-- **점프 호스트(ProxyJump)**: 세션 편집기에서 다른 저장 세션을 거쳐 연결. 홉마다 호스트 키 고정·인증·금고 자격증명을 따로 적용하며 최대 4홉.
-- **세션 가져오기/내보내기**: OpenSSH `~/.ssh/config`(Host/HostName/User/Port/IdentityFile/ProxyJump/LocalForward/RemoteForward/DynamicForward), PuTTY 저장 세션(Windows 레지스트리 / `~/.putty/sessions`), Ruxt JSON. 내보내기에는 비밀이 포함되지 않습니다.
-- **세션 목록**: 최근 연결 그룹, 태그 필드와 태그·그룹 검색.
-- **그래픽 옵션**: 렌더러(OpenGL / wgpu: DirectX 12·Vulkan·Metal), 하드웨어 가속(선호/필수/끔), VSync. `RUXT_RENDERER=wgpu|opengl` 환경 변수로도 지정.
-- **입력란 클립보드**: 터미널이 아닌 모든 입력란에서 Ctrl+C / Ctrl+V / Ctrl+X 동작(세션 편집기, 빠른 연결, SFTP 경로 등).
-- **접근성**: 그려진 버튼·목록 행·트리 노드·열 머리글에 접근성 이름/역할 부여.
-- **UI 스모크 테스트**: `egui_kittest` 기반 헤드리스 테스트(SFTP 탐색기 상호작용, 세션 편집기 검증, 설정 렌더링, 번역 누락 검사)가 CI에서 실행됩니다.
-- **배포**: 태그 푸시 시 Windows/Linux/macOS(arm64·x86_64) 바이너리, Windows 설치 파일(Inno Setup), SHA256SUMS를 만드는 릴리스 워크플로. 인증서 시크릿이 있으면 Authenticode 서명.
-- **문서**: 사용자 가이드(`docs/USER_GUIDE.md`)와 위협 모델(`docs/THREAT_MODEL.md`). 정보 창에서 바로 열 수 있습니다.
-- CI에 macOS 추가.
+- **UI language**: switch between Korean (default) and English (Settings → Appearance → Language). Every window, dialog and menu uses the same language.
+- **SFTP explorer**: rewritten in the style of Windows File Explorer: back/forward/up, a path bar you can click to type in, a folder tree, sortable details columns (name, date modified, type, size, permissions), drawn icons, Ctrl/Shift multi-select, and keyboard navigation (Backspace, Enter, F2, Delete, F5, Alt+←/→, Ctrl+A).
+- **SFTP local pane**: view a folder on your PC side by side and drag to upload or download. Remote **cut, copy and paste**, **drag to move** onto folder rows or tree nodes, and server-side copy (`Copy`) and bulk move (`Move`) commands.
+- **Jump hosts (ProxyJump)**: connect through another saved session from the session editor. Host key pinning, authentication and vault credentials apply separately to each hop, up to 4 hops.
+- **Session import/export**: OpenSSH `~/.ssh/config` (Host/HostName/User/Port/IdentityFile/ProxyJump/LocalForward/RemoteForward/DynamicForward), PuTTY saved sessions (Windows registry / `~/.putty/sessions`) and Ruxt JSON. Exports never include secrets.
+- **Session list**: a Recent connections group, a tags field, and search by tag or group.
+- **Graphics options**: renderer (OpenGL / wgpu: DirectX 12, Vulkan, Metal), hardware acceleration (preferred/required/off) and VSync. Can also be set with the `RUXT_RENDERER=wgpu|opengl` environment variable.
+- **Clipboard in input fields**: Ctrl+C / Ctrl+V / Ctrl+X work in every input field outside the terminal (session editor, quick connect, SFTP path and so on).
+- **Accessibility**: drawn buttons, list rows, tree nodes and column headers have accessible names and roles.
+- **UI smoke tests**: headless tests based on `egui_kittest` (SFTP explorer interactions, session editor validation, settings rendering, missing translation checks) run in CI.
+- **Distribution**: a release workflow that, on tag push, builds Windows/Linux/macOS (arm64, x86_64) binaries, a Windows installer (Inno Setup) and SHA256SUMS. Builds are Authenticode-signed when the certificate secret is available.
+- **Docs**: a user guide (`docs/USER_GUIDE.md`) and threat model (`docs/THREAT_MODEL.md`), which can be opened directly from the About window.
+- Added macOS to CI.
 
 ### Fixed
-- `clipboard_shortcuts`가 꺼져 있어 터미널 외 입력란이 Ctrl+V를 받지 못하던 문제.
-- 번들 글꼴에 없는 글리프(`⏎`, `▾` 등)가 □로 보이던 곳을 그리기 방식으로 대체.
+- Input fields outside the terminal did not accept Ctrl+V because `clipboard_shortcuts` was off.
+- Glyphs missing from the bundled font (`⏎`, `▾` and so on) showed as □; they are now drawn instead.
 
 ## [0.1.0] - 2026-10-01
 
 ### Added
-- 최초 공개: 다중 탭 SSH 터미널, SFTP, -L/-R/-D 터널, X11 포워딩, 로컬 셸, 세션 관리자, 암호화 자격증명 금고, 감사 로그.
+- First public release: multi-tab SSH terminal, SFTP, -L/-R/-D tunnels, X11 forwarding, local shell, session manager, encrypted credential vault and audit log.

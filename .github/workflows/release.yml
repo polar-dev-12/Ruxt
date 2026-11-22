@@ -104,7 +104,7 @@ jobs:
           stage="dist/${name}"
           mkdir -p "$stage"
           cp "target/${{ matrix.target }}/release/${{ matrix.bin }}" "$stage/"
-          cp README.md README.ko.md LICENSE-MIT LICENSE-APACHE CHANGELOG.md SECURITY.md "$stage/"
+          cp README.md README.ko.md LICENSE-MIT LICENSE-APACHE CHANGELOG.md CHANGELOG.ko.md SECURITY.md "$stage/"
           cp -r docs "$stage/docs"
           if [ "${{ runner.os }}" = "Windows" ]; then
             # ruxt.exe carries the X server, so the zip needs no xserver folder.
