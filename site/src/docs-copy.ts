@@ -70,15 +70,16 @@ const en: DocsCopy = {
       blocks: [
         {
           kind: "p",
-          text: "Downloads are on the GitHub releases page, with a `SHA256SUMS` file for every archive. On Windows the X server is inside `ruxt.exe`, so there is no separate X package to install.",
+          text: "The download available now is the Windows portable zip, with a `SHA256SUMS` file. The installer, Linux and macOS builds are coming soon. On Windows the X server is inside `ruxt.exe`, so there is no separate X package to install.",
         },
         {
           kind: "table",
           headers: ["Platform", "What to run"],
           rows: [
-            ["Windows", "The installer `ruxt-<version>-setup.exe`, or the portable zip `ruxt-<version>-windows-x86_64.zip`. No extra DLLs."],
-            ["Linux", "`ruxt-<version>-linux-x86_64.tar.gz`, then `./ruxt`. X11 and Wayland both work."],
-            ["macOS", "`ruxt-<version>-macos-aarch64.tar.gz` on Apple silicon, or `…-macos-x86_64.tar.gz` on Intel."],
+            ["Windows portable", "`ruxt-<version>-windows-x86_64.zip`. No extra DLLs."],
+            ["Windows installer", "Coming soon."],
+            ["Linux", "Coming soon."],
+            ["macOS", "Coming soon."],
             ["From source", "`cargo build --release` with Rust 1.95 or newer. See the [[build guide|{{build}}]]."],
           ],
         },
@@ -503,15 +504,16 @@ const ko: DocsCopy = {
       blocks: [
         {
           kind: "p",
-          text: "GitHub 릴리스 페이지에서 받고, 모든 압축 파일의 해시는 `SHA256SUMS`에 있습니다. Windows용 `ruxt.exe`에는 X 서버가 들어 있어 따로 설치할 패키지가 없습니다.",
+          text: "지금 받을 수 있는 파일은 Windows 포터블 zip이고, 해시는 `SHA256SUMS`에 있습니다. 설치 파일과 Linux, macOS 빌드는 준비 중입니다. Windows용 `ruxt.exe`에는 X 서버가 들어 있어 따로 설치할 패키지가 없습니다.",
         },
         {
           kind: "table",
           headers: ["플랫폼", "실행 방법"],
           rows: [
-            ["Windows", "설치 파일 `ruxt-<버전>-setup.exe`, 또는 포터블 zip `ruxt-<버전>-windows-x86_64.zip`. 추가 DLL은 필요 없습니다."],
-            ["Linux", "`ruxt-<버전>-linux-x86_64.tar.gz`를 풀고 `./ruxt`. X11과 Wayland를 모두 지원합니다."],
-            ["macOS", "Apple Silicon은 `ruxt-<버전>-macos-aarch64.tar.gz`, Intel은 `…-macos-x86_64.tar.gz`."],
+            ["Windows 포터블", "`ruxt-<버전>-windows-x86_64.zip`. 추가 DLL은 필요 없습니다."],
+            ["Windows 설치 파일", "준비 중."],
+            ["Linux", "준비 중."],
+            ["macOS", "준비 중."],
             ["소스 빌드", "Rust 1.95 이상에서 `cargo build --release`. [[빌드 가이드|{{build}}]]를 보세요."],
           ],
         },

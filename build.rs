@@ -2,9 +2,10 @@
 //! `src/core/xbundle.rs`).
 //!
 //! The tree comes from `installer/fetch-xserver.ps1`: `$RUXT_XSERVER_EMBED_DIR`, else `xserver/`
-//! in the profile directory (`target[/<triple>]/<profile>/xserver`, the script's default). Only the
-//! files listed in its `MANIFEST.txt` are taken, and each must match the SHA-256 recorded there,
-//! so whatever XWin wrote into the tree while it ran from there (`tmp/.X0-lock`, ...) stays out.
+//! in the profile directory (`target[/<triple>]/<profile>/xserver`, the script's default and the
+//! release workflow's `-Dest`). Only the files listed in its `MANIFEST.txt` are taken, and each
+//! must match the SHA-256 recorded there, so whatever XWin wrote into the tree while it ran from
+//! there (`tmp/.X0-lock`, ...) stays out.
 //!
 //! Without a tree the build goes on with no X server inside (a warning says so), unless
 //! `RUXT_REQUIRE_XSERVER=1` (release builds) makes that an error. After fetching the tree into a
@@ -14,6 +15,10 @@
 use sha2::{Digest, Sha256};
 use std::io::Write;
 use std::path::{Path, PathBuf};
+
+#[path = "embed_paths.rs"]
+mod embed_paths;
+use embed_paths::profile_dir;
 
 fn main() {
     println!("cargo::rerun-if-changed=build.rs");
@@ -26,8 +31,7 @@ fn main() {
     let out = PathBuf::from(std::env::var_os("OUT_DIR").expect("OUT_DIR"));
     let src = match std::env::var_os("RUXT_XSERVER_EMBED_DIR") {
         Some(d) if !d.is_empty() => PathBuf::from(d),
-        // OUT_DIR is <profile dir>/build/ruxt-<hash>/out.
-        _ => out.ancestors().nth(3).expect("profile dir").join("xserver"),
+        _ => profile_dir(&out).join("xserver"),
     };
     let manifest = src.join("MANIFEST.txt");
     if !manifest.is_file() {

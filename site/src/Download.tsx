@@ -61,7 +61,9 @@ export default function Download({ c, lang }: { c: Copy; lang: "ko" | "en" }) {
                 <th scope="row">{kind.name}</th>
                 <td className="note">{kind.note}</td>
                 <td className="link">
-                  {a ? (
+                  {kind.soon ? (
+                    <span className="soon">{c.comingSoon}</span>
+                  ) : a ? (
                     <a href={a.browser_download_url} download>
                       {a.name} <span className="size">{mb(a.size)}</span>
                     </a>

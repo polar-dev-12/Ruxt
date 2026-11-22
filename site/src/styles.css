@@ -405,6 +405,10 @@ main {
   font-size: 0.85rem;
   overflow-wrap: anywhere;
 }
+.assets .soon {
+  color: var(--ink-2);
+  font-size: 0.85rem;
+}
 .assets .size {
   color: var(--ink-2);
   font-family: var(--sans);

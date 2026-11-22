@@ -57,9 +57,9 @@ Most "all-in-one" terminals treat security as a checkbox. Ruxt starts from a wri
 
 ## Install
 
-Download the latest release: a Windows installer (`ruxt-<ver>-setup.exe`) or archives
-for Windows, Linux and macOS, with `SHA256SUMS`. The Windows build carries the X server
-inside `ruxt.exe`.
+Download the latest release: the Windows portable zip (`ruxt-<ver>-windows-x86_64.zip`),
+with `SHA256SUMS`. The Windows installer, Linux and macOS builds are coming soon.
+The Windows build carries the X server inside `ruxt.exe`.
 
 ## Build
 

@@ -26,7 +26,8 @@ export interface Copy {
   downloadIntro: string;
   latest: string;
   latestUnknown: string;
-  assets: { name: string; note: string; match: RegExp }[];
+  assets: { name: string; note: string; match: RegExp; soon?: boolean }[];
+  comingSoon: string;
   checksums: string;
   smartscreen: string;
   buildFromSource: string;
@@ -43,7 +44,7 @@ export const copy: Record<Lang, Copy> = {
     tagline: "보안을 먼저 설계한 SSH·SFTP 워크스테이션",
     lede:
       "호스트 키 고정, 비신뢰 X11 포워딩, 화면 잠금 비밀번호로 암호화하는 비밀번호 저장, 루프백 전용 터널이 기본값입니다. 느슨하게 쓰려면 직접 꺼야 합니다. 순수 Rust 한 개의 실행 파일로 Windows, Linux, macOS에서 돕니다.",
-    ctaDownload: "Windows 설치 파일 받기",
+    ctaDownload: "Windows 포터블 받기",
     ctaSource: "GitHub에서 소스 보기",
     statusNote:
       "1.0.0은 첫 안정 공개 버전입니다. 핵심 경로는 인프로세스 SSH 서버 테스트와 세 OS의 CI로 검증했지만 독립 보안 리뷰는 아직 받지 않았습니다. 운영 자격증명으로 쓰기 전에 위협 모델을 읽어 주세요.",
@@ -153,16 +154,17 @@ export const copy: Record<Lang, Copy> = {
     screenExplorer: "SFTP 탐색기 (말차 테마, 한국어)",
     downloadTitle: "다운로드",
     downloadIntro:
-      "GitHub 릴리스에서 받습니다. Windows용 ruxt.exe에는 X 서버가 내장되어 있어 따로 설치할 것이 없고, 모든 파일의 SHA-256이 SHA256SUMS에 있습니다.",
+      "지금 받을 수 있는 파일은 Windows 포터블 zip입니다. Windows용 ruxt.exe에는 X 서버가 들어 있고, SHA-256은 SHA256SUMS에 있습니다. 설치 파일과 Linux, macOS는 준비 중입니다.",
     latest: "최신 버전",
     latestUnknown: "릴리스 페이지에서 최신 버전을 확인하세요",
     assets: [
-      { name: "Windows 설치 파일", note: "x64, X 서버 내장, Inno Setup", match: /-setup\.exe$/i },
+      { name: "Windows 설치 파일", note: "x64, X 서버 내장, Inno Setup", match: /-setup\.exe$/i, soon: true },
       { name: "Windows 포터블", note: "x64 zip, X 서버 내장", match: /windows-x86_64\.zip$/i },
-      { name: "Linux", note: "x86_64 tar.gz", match: /linux-x86_64\.tar\.gz$/i },
-      { name: "macOS Apple Silicon", note: "arm64 tar.gz", match: /macos-aarch64\.tar\.gz$/i },
-      { name: "macOS Intel", note: "x86_64 tar.gz", match: /macos-x86_64\.tar\.gz$/i },
+      { name: "Linux", note: "x86_64 tar.gz", match: /linux-x86_64\.tar\.gz$/i, soon: true },
+      { name: "macOS Apple Silicon", note: "arm64 tar.gz", match: /macos-aarch64\.tar\.gz$/i, soon: true },
+      { name: "macOS Intel", note: "x86_64 tar.gz", match: /macos-x86_64\.tar\.gz$/i, soon: true },
     ],
+    comingSoon: "준비 중",
     checksums: "SHA256SUMS",
     smartscreen:
       "코드 서명 인증서가 아직 없어 Windows SmartScreen 경고가 뜰 수 있습니다. SHA-256을 대조한 뒤 '추가 정보 → 실행'으로 진행하세요.",
@@ -191,7 +193,7 @@ export const copy: Record<Lang, Copy> = {
     tagline: "The SSH and SFTP workstation that was designed security-first",
     lede:
       "Pinned host keys, untrusted X11 forwarding, passwords saved only under the screen-lock password and loopback-only tunnels are the defaults; you have to switch them off to be less careful. One pure-Rust binary for Windows, Linux and macOS.",
-    ctaDownload: "Download for Windows",
+    ctaDownload: "Download Windows portable",
     ctaSource: "View source on GitHub",
     statusNote:
       "1.0.0 is the first stable public release. The core paths are tested against an in-process SSH server and on CI for three operating systems, but the code has not had an independent security review yet. Read the threat model before using production credentials.",
@@ -301,16 +303,17 @@ export const copy: Record<Lang, Copy> = {
     screenExplorer: "SFTP explorer (Matcha theme, Korean UI)",
     downloadTitle: "Download",
     downloadIntro:
-      "Releases are published on GitHub. On Windows the X server is built into ruxt.exe, so there is nothing else to install, and SHA256SUMS lists every file.",
+      "The file you can download now is the Windows portable zip. On Windows the X server is built into ruxt.exe, and SHA256SUMS lists its hash. The installer, Linux and macOS builds are coming soon.",
     latest: "Latest release",
     latestUnknown: "See the releases page for the latest version",
     assets: [
-      { name: "Windows installer", note: "x64, X server built in, Inno Setup", match: /-setup\.exe$/i },
+      { name: "Windows installer", note: "x64, X server built in, Inno Setup", match: /-setup\.exe$/i, soon: true },
       { name: "Windows portable", note: "x64 zip, X server built in", match: /windows-x86_64\.zip$/i },
-      { name: "Linux", note: "x86_64 tar.gz", match: /linux-x86_64\.tar\.gz$/i },
-      { name: "macOS Apple Silicon", note: "arm64 tar.gz", match: /macos-aarch64\.tar\.gz$/i },
-      { name: "macOS Intel", note: "x86_64 tar.gz", match: /macos-x86_64\.tar\.gz$/i },
+      { name: "Linux", note: "x86_64 tar.gz", match: /linux-x86_64\.tar\.gz$/i, soon: true },
+      { name: "macOS Apple Silicon", note: "arm64 tar.gz", match: /macos-aarch64\.tar\.gz$/i, soon: true },
+      { name: "macOS Intel", note: "x86_64 tar.gz", match: /macos-x86_64\.tar\.gz$/i, soon: true },
     ],
+    comingSoon: "Coming soon",
     checksums: "SHA256SUMS",
     smartscreen:
       "There is no code-signing certificate yet, so Windows SmartScreen may warn. Compare the SHA-256, then choose More info → Run anyway.",
