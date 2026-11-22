@@ -32,6 +32,7 @@ PrivilegesRequiredOverridesAllowed=dialog
 ; installing user's %LOCALAPPDATA% (an elevated install keeps that user's profile).
 UsedUserAreasWarning=no
 UninstallDisplayIcon={app}\ruxt.exe
+SetupIconFile=..\assets\icon.ico
 MinVersion=10.0
 
 [Languages]

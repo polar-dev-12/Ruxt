@@ -6,6 +6,9 @@ This project follows [Semantic Versioning](https://semver.org/). The format is b
 
 ## [Unreleased]
 
+### Added
+- **App icon**: `ruxt.exe`, the window and taskbar, shortcuts and the installer now show the Ruxt icon (`assets/`). Previously Windows showed a blank executable icon and the window used the default egui icon.
+
 ### Security
 - Updated `url` to 2.5.9 (RUSTSEC-2026-0592: stack overflow in `Url::origin()` on nested `blob:` URLs). It is pulled in through `eframe` → `egui-winit` → `webbrowser`.
 

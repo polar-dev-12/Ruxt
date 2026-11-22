@@ -45,7 +45,8 @@ fn main() -> eframe::Result {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([1280.0, 800.0])
             .with_min_inner_size([800.0, 500.0])
-            .with_title("Ruxt"),
+            .with_title("Ruxt")
+            .with_icon(window_icon()),
         // We handle Ctrl+C / Ctrl+V ourselves: in a terminal Ctrl+C must reach the remote shell.
         clipboard_shortcuts: false,
         renderer: match renderer {
@@ -81,4 +82,36 @@ fn main() -> eframe::Result {
         options,
         Box::new(move |cc| Ok(Box::new(app::RuxtApp::new(cc, rt_handle)))),
     )
+}
+
+/// Window and taskbar icon, decoded from the PNG baked into the binary. Windows also gets the
+/// `.ico` resource from build.rs; this covers the window itself on every platform.
+fn window_icon() -> egui::IconData {
+    let decoder = png::Decoder::new(std::io::Cursor::new(include_bytes!("../assets/icon-256.png")));
+    let decoded = decoder.read_info().and_then(|mut reader| {
+        let mut buf = vec![0; reader.output_buffer_size().unwrap_or(0)];
+        let info = reader.next_frame(&mut buf)?;
+        buf.truncate(info.buffer_size());
+        Ok((buf, info))
+    });
+    match decoded {
+        Ok((rgba, info)) if info.color_type == png::ColorType::Rgba && info.bit_depth == png::BitDepth::Eight => {
+            egui::IconData {
+                rgba,
+                width: info.width,
+                height: info.height,
+            }
+        }
+        _ => egui::IconData::default(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn window_icon_decodes() {
+        let icon = super::window_icon();
+        assert_eq!((icon.width, icon.height), (256, 256));
+        assert_eq!(icon.rgba.len(), 256 * 256 * 4);
+    }
 }

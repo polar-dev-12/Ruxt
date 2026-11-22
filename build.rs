@@ -28,6 +28,7 @@ fn main() {
     if std::env::var("CARGO_CFG_TARGET_OS").as_deref() != Ok("windows") {
         return;
     }
+    embed_icon();
     let out = PathBuf::from(std::env::var_os("OUT_DIR").expect("OUT_DIR"));
     let src = match std::env::var_os("RUXT_XSERVER_EMBED_DIR") {
         Some(d) if !d.is_empty() => PathBuf::from(d),
@@ -111,3 +112,19 @@ fn read_manifest(path: &Path) -> Vec<(String, String)> {
 fn hex(b: &[u8]) -> String {
     b.iter().map(|x| format!("{x:02x}")).collect()
 }
+
+/// Gives `ruxt.exe` its icon (Explorer, shortcuts, taskbar, Apps & features). The window icon
+/// itself is set at run time from `assets/icon-256.png` (see `window_icon` in main.rs).
+#[cfg(windows)]
+fn embed_icon() {
+    println!("cargo::rerun-if-changed=assets/icon.ico");
+    let mut res = winresource::WindowsResource::new();
+    res.set_icon("assets/icon.ico");
+    if let Err(e) = res.compile() {
+        panic!("embedding assets/icon.ico failed: {e}");
+    }
+}
+
+/// Windows targets are built on Windows hosts, so there is nothing to embed elsewhere.
+#[cfg(not(windows))]
+fn embed_icon() {}

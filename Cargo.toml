@@ -51,6 +51,8 @@ ruxt-inputguard = { path = "crates/ruxt-inputguard" }
 # Phosphor icons (import path `egui_phosphor`). Upstream egui-phosphor 0.14 tracks egui 0.36;
 # this fork is the same API on egui 0.37.
 egui-pop-phosphor = "0.15"
+# Decodes the window icon (assets/icon-256.png); already in the tree through eframe.
+png = "0.18"
 
 [target.'cfg(windows)'.dependencies]
 # Unpacks the X server tree that build.rs embeds (src/core/xbundle.rs).
@@ -61,6 +63,10 @@ raw-window-handle = "0.6"
 [build-dependencies]
 flate2 = "1"
 sha2 = "0.10"
+
+[target.'cfg(windows)'.build-dependencies]
+# Puts assets/icon.ico into ruxt.exe as its icon resource (Explorer, shortcuts, taskbar).
+winresource = "0.1"
 
 [dev-dependencies]
 # Headless UI tests (src/app/ui_tests.rs); no renderer, so CI needs no GPU.

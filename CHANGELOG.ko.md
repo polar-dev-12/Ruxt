@@ -6,6 +6,9 @@
 
 ## [Unreleased]
 
+### Added
+- **앱 아이콘**: `ruxt.exe`, 창과 작업 표시줄, 바로 가기, 설치 프로그램에 Ruxt 아이콘(`assets/`)이 나옵니다. 전에는 Windows에서 빈 실행 파일 아이콘이 보였고 창은 egui 기본 아이콘을 썼습니다.
+
 ### Security
 - `url`을 2.5.9로 올렸습니다(RUSTSEC-2026-0592: 중첩된 `blob:` URL에서 `Url::origin()`의 스택 오버플로). `eframe` → `egui-winit` → `webbrowser`를 거쳐 들어오는 의존성입니다.
 
