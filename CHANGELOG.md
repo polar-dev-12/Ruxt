@@ -6,6 +6,9 @@ This project follows [Semantic Versioning](https://semver.org/). The format is b
 
 ## [Unreleased]
 
+### Security
+- Updated `url` to 2.5.9 (RUSTSEC-2026-0592: stack overflow in `Url::origin()` on nested `blob:` URLs). It is pulled in through `eframe` → `egui-winit` → `webbrowser`.
+
 ### Changed
 - **The X server no longer starts automatically with Ruxt** (Settings → X server → "On startup", off by default). It starts only when an X11-forwarding session connects or when you turn it on from the status bar. Right before it launches, Ruxt asks once to add a Windows Firewall inbound block rule (UAC). If you decline, the server still starts with cookie authentication only, and a warning stays in the status menu. If "On startup" is already on in your saved settings, that value is kept.
 
