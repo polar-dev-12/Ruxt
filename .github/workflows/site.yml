@@ -32,7 +32,7 @@ jobs:
       - run: cp docs/images/*.png site/public/images/
       - run: npm run build
         working-directory: site
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: site/dist
 
