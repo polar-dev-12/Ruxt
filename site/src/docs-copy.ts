@@ -26,6 +26,8 @@ const SECURITY = `${REPO}/blob/main/SECURITY.md`;
 const THIRD = `${REPO}/blob/main/docs/THIRD_PARTY.md`;
 const CHANGELOG = `${REPO}/blob/main/CHANGELOG.md`;
 const BUILD = `${REPO}/blob/main/BUILD.md`;
+const BUILD_KO = `${REPO}/blob/main/BUILD.ko.md`;
+const CHANGELOG_KO = `${REPO}/blob/main/CHANGELOG.ko.md`;
 const GUIDE = `${REPO}/blob/main/docs/USER_GUIDE.md`;
 
 const en: DocsCopy = {
@@ -42,7 +44,7 @@ const en: DocsCopy = {
     { title: "Security policy", href: SECURITY },
     { title: "Third-party components", href: THIRD },
     { title: "Changelog", href: CHANGELOG },
-    { title: "Build guide (Korean)", href: BUILD },
+    { title: "Build guide", href: BUILD },
     { title: "User guide in the repository (Korean)", href: GUIDE },
   ],
   sections: [
@@ -70,16 +72,16 @@ const en: DocsCopy = {
       blocks: [
         {
           kind: "p",
-          text: "The download available now is the Windows portable zip, with a `SHA256SUMS` file. The installer, Linux and macOS builds are coming soon. On Windows the X server is inside `ruxt.exe`, so there is no separate X package to install.",
+          text: "Downloads are available for Windows (installer and portable zip), Linux and macOS, with a `SHA256SUMS` file. On Windows the X server is inside `ruxt.exe`, so there is no separate X package to install.",
         },
         {
           kind: "table",
           headers: ["Platform", "What to run"],
           rows: [
             ["Windows portable", "`ruxt-<version>-windows-x86_64.zip`. No extra DLLs."],
-            ["Windows installer", "Coming soon."],
-            ["Linux", "Coming soon."],
-            ["macOS", "Coming soon."],
+            ["Windows installer", "`ruxt-<version>-setup.exe`. Installs per user or for all users."],
+            ["Linux", "`ruxt-<version>-linux-x86_64.tar.gz`. Extract and run `ruxt`."],
+            ["macOS", "`ruxt-<version>-macos-aarch64.tar.gz` (Apple Silicon) or `ruxt-<version>-macos-x86_64.tar.gz` (Intel). Extract and run `ruxt`."],
             ["From source", "`cargo build --release` with Rust 1.95 or newer. See the [[build guide|{{build}}]]."],
           ],
         },
@@ -475,8 +477,8 @@ const ko: DocsCopy = {
     { title: "위협 모델", href: THREAT },
     { title: "보안 정책", href: SECURITY },
     { title: "제3자 구성 요소", href: THIRD },
-    { title: "변경 이력", href: CHANGELOG },
-    { title: "빌드 가이드", href: BUILD },
+    { title: "변경 이력", href: CHANGELOG_KO },
+    { title: "빌드 가이드", href: BUILD_KO },
     { title: "저장소의 사용자 가이드", href: GUIDE },
   ],
   sections: [
@@ -504,17 +506,17 @@ const ko: DocsCopy = {
       blocks: [
         {
           kind: "p",
-          text: "지금 받을 수 있는 파일은 Windows 포터블 zip이고, 해시는 `SHA256SUMS`에 있습니다. 설치 파일과 Linux, macOS 빌드는 준비 중입니다. Windows용 `ruxt.exe`에는 X 서버가 들어 있어 따로 설치할 패키지가 없습니다.",
+          text: "Windows(설치 파일·포터블 zip), Linux, macOS용 파일을 받을 수 있고, 해시는 `SHA256SUMS`에 있습니다. Windows용 `ruxt.exe`에는 X 서버가 들어 있어 따로 설치할 패키지가 없습니다.",
         },
         {
           kind: "table",
           headers: ["플랫폼", "실행 방법"],
           rows: [
             ["Windows 포터블", "`ruxt-<버전>-windows-x86_64.zip`. 추가 DLL은 필요 없습니다."],
-            ["Windows 설치 파일", "준비 중."],
-            ["Linux", "준비 중."],
-            ["macOS", "준비 중."],
-            ["소스 빌드", "Rust 1.95 이상에서 `cargo build --release`. [[빌드 가이드|{{build}}]]를 보세요."],
+            ["Windows 설치 파일", "`ruxt-<버전>-setup.exe`. 사용자별 또는 모든 사용자용으로 설치합니다."],
+            ["Linux", "`ruxt-<버전>-linux-x86_64.tar.gz`. 압축을 풀고 `ruxt`를 실행합니다."],
+            ["macOS", "`ruxt-<버전>-macos-aarch64.tar.gz`(Apple Silicon) 또는 `ruxt-<버전>-macos-x86_64.tar.gz`(Intel). 압축을 풀고 `ruxt`를 실행합니다."],
+            ["소스 빌드", "Rust 1.95 이상에서 `cargo build --release`. [[빌드 가이드|{{build_ko}}]]를 보세요."],
           ],
         },
         {
@@ -900,7 +902,8 @@ function rewrite(text: string): string {
   return text
     .replace(/\{\{threat\}\}/g, THREAT)
     .replace(/\{\{security\}\}/g, SECURITY)
-    .replace(/\{\{build\}\}/g, BUILD);
+    .replace(/\{\{build\}\}/g, BUILD)
+    .replace(/\{\{build_ko\}\}/g, BUILD_KO);
 }
 
 function clean(copy: DocsCopy): DocsCopy {

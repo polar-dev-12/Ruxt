@@ -63,7 +63,7 @@ The Windows build carries the X server inside `ruxt.exe`.
 
 ## Build
 
-See [BUILD.md](BUILD.md) (Korean) for detailed steps (per-OS prerequisites, troubleshooting,
+See [BUILD.md](BUILD.md) for detailed steps (per-OS prerequisites, troubleshooting,
 packaging).
 
 ```powershell

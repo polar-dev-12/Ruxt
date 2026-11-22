@@ -46,7 +46,7 @@ GUI(egui) 기반 다중 탭 SSH 터미널 + 윈도우 탐색기 스타일 SFTP +
 
 ## 빌드
 
-상세 절차(OS별 요구 패키지, 문제 해결, 패키징)는 [BUILD.md](BUILD.md) 를 참고하세요.
+상세 절차(OS별 요구 패키지, 문제 해결, 패키징)는 [BUILD.ko.md](BUILD.ko.md) 를 참고하세요.
 
 ```powershell
 # Rust 1.95+ (MSVC 또는 GNU 툴체인). Windows에서는 Visual Studio Build Tools(C++)가 필요합니다.

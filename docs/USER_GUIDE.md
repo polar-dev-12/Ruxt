@@ -9,7 +9,7 @@ Ruxt는 보안을 최우선으로 설계한 SSH/SFTP 워크스테이션입니다
 | Windows | 릴리스 페이지의 `ruxt-<버전>-setup.exe`(설치 파일) 또는 `ruxt-<버전>-windows-x86_64.zip`(단일 실행 파일). 추가 DLL이 필요 없습니다. |
 | Linux | `ruxt-<버전>-linux-x86_64.tar.gz`를 풀고 `./ruxt` 실행. X11/Wayland 모두 지원합니다. |
 | macOS | `ruxt-<버전>-macos-aarch64.tar.gz`(Apple Silicon) 또는 `…-macos-x86_64.tar.gz`. |
-| 소스 빌드 | `cargo build --release` ([BUILD.md](../BUILD.md)) |
+| 소스 빌드 | `cargo build --release` ([BUILD.ko.md](../BUILD.ko.md)) |
 
 다운로드한 파일은 릴리스에 함께 올라오는 `SHA256SUMS`로 무결성을 확인할 수 있습니다.
 
