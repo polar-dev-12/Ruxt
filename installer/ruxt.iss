@@ -1,5 +1,6 @@
 ; Inno Setup script for Ruxt (built by .github/workflows/release.yml).
-; Usage: ISCC.exe /DAppVersion=0.2.0 /DBinDir=target\release installer\ruxt.iss
+; Usage: ISCC.exe /DAppVersion=0.2.0 /DBinDir=%CD%\target\release installer\ruxt.iss
+; (a relative BinDir is resolved against this script's folder, not the current directory)
 
 #ifndef AppVersion
   #define AppVersion "0.0.0"
