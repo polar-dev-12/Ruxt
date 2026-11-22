@@ -6,6 +6,8 @@ This project follows [Semantic Versioning](https://semver.org/). The format is b
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-11-22
+
 ### Added
 - **App icon**: `ruxt.exe`, the window and taskbar, shortcuts and the installer now show the Ruxt icon (`assets/`). Previously Windows showed a blank executable icon and the window used the default egui icon.
 
