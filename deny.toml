@@ -15,6 +15,11 @@ db-path = "~/.cargo/advisory-db"
 db-urls = ["https://github.com/rustsec/advisory-db"]
 version = 2
 yanked = "deny"
+# cargo-deny 0.22 only reports unmaintained advisories for direct dependencies.
+# Pin that scope so older cargo-deny (which defaulted to "all") matches CI.
+# Transitive cases such as zvariant/zbus_names/zvariant_derive (egui's Linux
+# accesskit stack) are outside this check.
+unmaintained = "workspace"
 # Each entry is reviewed; remove it when upstream ships a fix.
 ignore = [
     # rsa: Marvin timing side channel in RSA private-key operations. No fixed release
@@ -25,11 +30,10 @@ ignore = [
     # ttf-parser: unmaintained. Used directly for font-name parsing and transitively by egui
     # (ab_glyph). Only parses fonts installed on the user's machine, never remote data.
     { id = "RUSTSEC-2026-0192", reason = "egui depends on it too; parses local system fonts only" },
-    # zbus family: unmaintained as standalone crates, pulled in by rfd/arboard on Linux for
-    # the file dialog and clipboard over D-Bus. Linux desktop plumbing, not network input.
-    { id = "RUSTSEC-2026-0370", reason = "zvariant via rfd/arboard (Linux D-Bus); no fix upstream" },
-    { id = "RUSTSEC-2026-0371", reason = "zbus_names via rfd/arboard (Linux D-Bus); no fix upstream" },
-    { id = "RUSTSEC-2026-0372", reason = "zvariant_derive via rfd/arboard (Linux D-Bus); no fix upstream" },
+    # chrono: unmaintained, and the advisory lists no patched release. Ruxt uses it for local
+    # timestamps only (audit-log retention, session export, SFTP modified time, Tail Viewer
+    # log lines). russh-sftp 3.0.1 also depends on it, so the crate cannot be dropped.
+    { id = "RUSTSEC-2026-0543", reason = "no fix upstream; local timestamps, also required by russh-sftp" },
 ]
 
 [licenses]

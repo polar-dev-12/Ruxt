@@ -73,8 +73,7 @@ mod win {
     use std::thread::JoinHandle;
     use windows_sys::Win32::Foundation::{HWND, LPARAM, LRESULT, WPARAM};
     use windows_sys::Win32::Graphics::Dwm::{
-        DwmSetWindowAttribute, DWMWA_BORDER_COLOR, DWMWA_CAPTION_COLOR, DWMWA_TEXT_COLOR,
-        DWMWA_USE_IMMERSIVE_DARK_MODE,
+        DwmSetWindowAttribute, DWMWA_BORDER_COLOR, DWMWA_CAPTION_COLOR, DWMWA_TEXT_COLOR, DWMWA_USE_IMMERSIVE_DARK_MODE,
     };
     use windows_sys::Win32::System::LibraryLoader::GetModuleHandleW;
     use windows_sys::Win32::System::Threading::{GetCurrentProcessId, GetCurrentThreadId};

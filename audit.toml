@@ -1,0 +1,12 @@
+# Same reviewed exceptions as deny.toml. cargo-audit does not read deny.toml.
+# cargo-deny remains the CI gate for licences, bans, and transitive scope.
+
+[advisories]
+ignore = [
+    # rsa: no fixed release. Local RSA user-key signing only.
+    "RUSTSEC-2023-0071",
+    # ttf-parser: unmaintained. Parses local system fonts only.
+    "RUSTSEC-2026-0192",
+    # chrono: no patched release. Local timestamps; russh-sftp 3 also depends on it.
+    "RUSTSEC-2026-0543",
+]

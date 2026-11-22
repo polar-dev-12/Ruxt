@@ -693,7 +693,10 @@ fn render_sftp_dummy() {
             demo_entry("/home/demo", "backup.tar.gz", false, 4_194_304, 1_767_100_000),
         ],
     });
-    let state = Explorer { panel, actions: Vec::new() };
+    let state = Explorer {
+        panel,
+        actions: Vec::new(),
+    };
     let mut harness = Harness::builder()
         .with_size(egui::Vec2::new(980.0, 420.0))
         .with_accessibility_check(false)
@@ -718,7 +721,11 @@ fn render_sftp_dummy() {
     for _ in 0..8 {
         harness.step();
     }
-    harness.render().unwrap().save(format!("{dir}/sftp-explorer.png")).unwrap();
+    harness
+        .render()
+        .unwrap()
+        .save(format!("{dir}/sftp-explorer.png"))
+        .unwrap();
 }
 
 fn demo_entry(parent: &str, name: &str, dir: bool, size: u64, mtime: u32) -> SftpEntry {

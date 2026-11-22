@@ -56,15 +56,14 @@ jobs:
   audit:
     name: cargo audit
     runs-on: ubuntu-latest
-    # audit-check reports through a check run, which the default read-only token cannot create.
-    permissions:
-      contents: read
-      checks: write
     steps:
       - uses: actions/checkout@v4
-      - uses: rustsec/audit-check@v2
+      # rustsec/audit-check posts a check run and currently fails with
+      # "Not Found" on update-a-check-run (rustsec/audit-check#56).
+      - uses: taiki-e/install-action@v2
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          tool: cargo-audit
+      - run: cargo audit
 
   deny:
     name: cargo deny (licences, advisories, sources)
