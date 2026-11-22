@@ -44,7 +44,7 @@ base64 = "0.22"
 hex = "0.4"
 open = "5"
 ttf-parser = "0.25"
-rusqlite = { version = "0.41", features = ["bundled"] }
+rusqlite = { version = "0.43", features = ["bundled"] }
 # Agent guard input hooks (src/core/agent_guard.rs). Holds the only FFI, so this crate keeps
 # forbid(unsafe_code); a no-op off Windows.
 ruxt-inputguard = { path = "crates/ruxt-inputguard" }
