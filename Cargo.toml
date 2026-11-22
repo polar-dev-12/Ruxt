@@ -1,0 +1,83 @@
+[package]
+name = "ruxt"
+version = "1.0.0"
+edition = "2021"
+rust-version = "1.95"
+description = "SSH/SFTP terminal workstation with secure defaults, written in pure Rust"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/polarbear138/ruxt"
+
+[[bin]]
+name = "ruxt"
+path = "src/main.rs"
+
+[dependencies]
+russh = { version = "0.65", default-features = false, features = ["ring", "flate2", "rsa"] }
+russh-sftp = "3"
+alacritty_terminal = "0.26"
+eframe = { version = "0.37", default-features = false, features = ["accesskit", "clipboard", "default_fonts", "links", "glow", "wgpu", "wayland", "x11"] }
+egui = "0.37"
+tokio = { version = "1", features = ["full"] }
+portable-pty = "0.9"
+argon2 = "0.6"
+chacha20poly1305 = "0.11"
+zeroize = { version = "1", features = ["derive"] }
+secrecy = "0.10"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+directories = "6"
+arboard = "3"
+rand = "0.10"
+anyhow = "1"
+thiserror = "2"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+parking_lot = "0.13"
+rfd = "0.17"
+humansize = "2"
+chrono = "0.4"
+toml = "1"
+bytes = "1"
+futures = "0.3"
+sha2 = "0.10"
+base64 = "0.22"
+hex = "0.4"
+open = "5"
+ttf-parser = "0.25"
+rusqlite = { version = "0.41", features = ["bundled"] }
+# Agent guard input hooks (src/core/agent_guard.rs). Holds the only FFI, so this crate keeps
+# forbid(unsafe_code); a no-op off Windows.
+ruxt-inputguard = { path = "crates/ruxt-inputguard" }
+# Phosphor icons (import path `egui_phosphor`). Upstream egui-phosphor 0.14 tracks egui 0.36;
+# this fork is the same API on egui 0.37.
+egui-pop-phosphor = "0.15"
+
+[target.'cfg(windows)'.dependencies]
+# Unpacks the X server tree that build.rs embeds (src/core/xbundle.rs).
+flate2 = "1"
+# HWND of the eframe window, so the caption buttons can be painted (see `push_caption`).
+raw-window-handle = "0.6"
+
+[build-dependencies]
+flate2 = "1"
+sha2 = "0.10"
+
+[dev-dependencies]
+# Headless UI tests (src/app/ui_tests.rs); no renderer, so CI needs no GPU.
+egui_kittest = { version = "0.37", features = ["wgpu"] }
+# Only for the ignored `render_screens` test that writes PNGs of the dialogs for a visual check.
+image = { version = "0.25", default-features = false, features = ["png"] }
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+overflow-checks = true
+debug = false
+strip = true
+
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 2

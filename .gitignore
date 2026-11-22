@@ -1,0 +1,52 @@
+# ── Rust ─────────────────────────────────────────────────────────────
+# Build output at any depth (workspace root and member crates).
+# installer/fetch-xserver.ps1 also writes the bundled X server to target/*/xserver.
+target/
+**/*.rs.bk
+# MSVC debug symbols left behind by manual builds
+*.pdb
+
+# ── Site (Vite / npm) ────────────────────────────────────────────────
+/site/node_modules/
+/site/dist/
+/site/.vite/
+npm-debug.log*
+
+# ── Release packaging ────────────────────────────────────────────────
+# release.yml and installer/ruxt.iss (OutputDir=..\dist)
+/dist/
+
+# ── Secrets ──────────────────────────────────────────────────────────
+# Signing certificates and local secrets must never be committed
+# (release.yml writes cert.pfx for a moment while signing).
+*.pfx
+*.p12
+.env
+.env.*
+
+# ── Local runtime artefacts ──────────────────────────────────────────
+*.log
+
+# ── Local tooling ────────────────────────────────────────────────────
+# Claude Code: personal settings only (shared .claude/settings.json may be committed)
+.claude/settings.local.json
+# Playwright MCP browser-test output
+/.playwright-mcp/
+# Development hand-over notes (not part of the published repository)
+/context.md
+
+# ── Editors ──────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# ── Merge / patch leftovers ──────────────────────────────────────────
+*.orig
+*.rej
+
+# ── OS noise ─────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini

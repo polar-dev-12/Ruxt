@@ -1,0 +1,10 @@
+# cargo-audit (CI: rustsec/audit-check) does not read deny.toml. Keep this list in sync with
+# [advisories].ignore there, where each entry's reason is documented.
+[advisories]
+ignore = [
+    "RUSTSEC-2023-0071", # rsa: Marvin timing side channel, no fix upstream
+    "RUSTSEC-2026-0192", # ttf-parser: unmaintained, local system fonts only
+    "RUSTSEC-2026-0370", # zvariant: unmaintained, via rfd/arboard (Linux D-Bus)
+    "RUSTSEC-2026-0371", # zbus_names: unmaintained, via rfd/arboard (Linux D-Bus)
+    "RUSTSEC-2026-0372", # zvariant_derive: unmaintained, via rfd/arboard (Linux D-Bus)
+]

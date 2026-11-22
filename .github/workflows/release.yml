@@ -1,0 +1,156 @@
+name: Release
+
+# Tag a commit `vX.Y.Z` to build signed, checksummed binaries for every desktop platform and
+# publish them as a GitHub release. The release notes are taken from CHANGELOG.md.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: build (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows-x86_64
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            bin: ruxt.exe
+          - name: linux-x86_64
+            os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            bin: ruxt
+          - name: macos-aarch64
+            os: macos-latest
+            target: aarch64-apple-darwin
+            bin: ruxt
+          - name: macos-x86_64
+            os: macos-13
+            target: x86_64-apple-darwin
+            bin: ruxt
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - name: Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libxkbcommon-dev libxkbcommon-x11-dev \
+            libwayland-dev libx11-dev libxcursor-dev libxrandr-dev libxi-dev libgl1-mesa-dev \
+            libegl1-mesa-dev libfontconfig1-dev
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: release-${{ matrix.target }}
+
+      # Cygwin/X tree for X11 forwarding. build.rs embeds it into ruxt.exe, so it comes first.
+      - name: Fetch X server (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./installer/fetch-xserver.ps1 -Dest "target/${{ matrix.target }}/release/xserver"
+
+      - name: Build
+        run: cargo build --release --locked --target ${{ matrix.target }}
+        env:
+          # A Windows build without the X server tree fails instead of shipping without it.
+          RUXT_REQUIRE_XSERVER: "1"
+
+      # Authenticode signing when a certificate is configured (base64 PFX + password secrets).
+      - name: Sign (Windows)
+        if: runner.os == 'Windows' && env.PFX != ''
+        shell: pwsh
+        env:
+          PFX: ${{ secrets.WINDOWS_CERT_PFX_BASE64 }}
+          PFX_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}
+        run: |
+          [IO.File]::WriteAllBytes("cert.pfx", [Convert]::FromBase64String($env:PFX))
+          $signtool = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" | Select-Object -Last 1
+          & $signtool.FullName sign /fd SHA256 /td SHA256 /tr http://timestamp.digicert.com /f cert.pfx /p $env:PFX_PASSWORD "target/${{ matrix.target }}/release/ruxt.exe"
+          Remove-Item cert.pfx
+
+      - name: Installer (Windows, Inno Setup)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ver = (Select-String -Path Cargo.toml -Pattern '^version = "(.*)"').Matches[0].Groups[1].Value
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DAppVersion=$ver /DBinDir="target/${{ matrix.target }}/release" installer/ruxt.iss
+          if ($env:PFX -ne '') {
+            $signtool = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" | Select-Object -Last 1
+            [IO.File]::WriteAllBytes("cert.pfx", [Convert]::FromBase64String($env:PFX))
+            & $signtool.FullName sign /fd SHA256 /td SHA256 /tr http://timestamp.digicert.com /f cert.pfx /p $env:PFX_PASSWORD "dist/ruxt-$ver-setup.exe"
+            Remove-Item cert.pfx
+          }
+        env:
+          PFX: ${{ secrets.WINDOWS_CERT_PFX_BASE64 }}
+          PFX_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}
+
+      - name: Package
+        shell: bash
+        run: |
+          set -euo pipefail
+          ver=$(grep -m1 '^version = ' Cargo.toml | sed 's/.*"\(.*\)".*/\1/')
+          mkdir -p dist
+          name="ruxt-${ver}-${{ matrix.name }}"
+          stage="dist/${name}"
+          mkdir -p "$stage"
+          cp "target/${{ matrix.target }}/release/${{ matrix.bin }}" "$stage/"
+          cp README.md README.ko.md LICENSE-MIT LICENSE-APACHE CHANGELOG.md SECURITY.md "$stage/"
+          cp -r docs "$stage/docs"
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            # ruxt.exe carries the X server, so the zip needs no xserver folder.
+            (cd dist && 7z a "${name}.zip" "${name}" > /dev/null)
+          else
+            tar -C dist -czf "dist/${name}.tar.gz" "${name}"
+          fi
+          rm -rf "$stage"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: dist/*
+
+  release:
+    name: publish
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Checksums
+        run: |
+          cd dist
+          ls -la
+          sha256sum * > SHA256SUMS
+          cat SHA256SUMS
+      - name: Release notes from CHANGELOG
+        run: |
+          ver="${GITHUB_REF_NAME#v}"
+          # The tag must match Cargo.toml so the asset names and the notes agree.
+          cargo_ver=$(grep -m1 '^version = ' Cargo.toml | cut -d'"' -f2)
+          if [ "$ver" != "$cargo_ver" ]; then echo "tag v$ver != Cargo.toml $cargo_ver" >&2; exit 1; fi
+          awk -v ver="$ver" '
+            $0 ~ "^## \\[" ver "\\]" {p=1; next}
+            p && /^## \[/ {exit}
+            p {print}
+          ' CHANGELOG.md > notes.md
+          if [ ! -s notes.md ]; then echo "Release $ver" > notes.md; fi
+          cat notes.md
+      - uses: softprops/action-gh-release@v2
+        with:
+          body_path: notes.md
+          files: dist/*
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
