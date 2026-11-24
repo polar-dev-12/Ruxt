@@ -788,10 +788,9 @@ pub fn parse_shell_dir_cmds(line: &str) -> Vec<ShellDirCmd> {
         };
         match cmd.as_str() {
             "cd" => {
-                let mut args = tokens[1..].iter().peekable();
                 let mut end_opts = false;
                 let mut targets: Vec<(&str, bool)> = Vec::new();
-                while let Some((tok, exp)) = args.next() {
+                for (tok, exp) in &tokens[1..] {
                     if !end_opts && tok == "--" {
                         end_opts = true;
                         continue;
@@ -832,10 +831,8 @@ pub fn normalize_posix_path(path: &str) -> Option<String> {
         ("/", r)
     } else if path == "~" {
         return Some("~".to_string());
-    } else if let Some(r) = path.strip_prefix("~/") {
-        ("~/", r)
     } else {
-        return None;
+        ("~/", path.strip_prefix("~/")?)
     };
     let mut stack: Vec<&str> = Vec::new();
     for part in rest.split('/') {
