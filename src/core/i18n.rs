@@ -632,8 +632,8 @@ static KO: &[(&str, &str)] = &[
     ("Hidden items (starting with .)", "숨김 항목 (.으로 시작)"),
     ("Follow the terminal's working directory", "터미널 작업 폴더 따라가기"),
     (
-        "Moves to the terminal's current directory whenever it changes (OSC 7 / prompt title)",
-        "터미널의 현재 디렉터리(OSC 7 / 프롬프트 제목)가 바뀌면 자동으로 이동합니다",
+        "Moves to the terminal's current directory whenever it changes (cd / pwd / OSC 7 / prompt title)",
+        "터미널의 현재 디렉터리(cd / pwd / OSC 7 / 프롬프트 제목)가 바뀌면 자동으로 이동합니다",
     ),
     ("Sort by", "정렬"),
     ("Date modified", "수정한 날짜"),

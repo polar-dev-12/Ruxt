@@ -27,7 +27,7 @@ use crate::core::ssh::{
     TunnelEvent, UiEvent, VaultOpOutcome,
 };
 use crate::core::tail::{self, TailEvent, TailId, TailSpec};
-use crate::core::term::{Palette, Size, TermState};
+use crate::core::term::{self, Palette, ShellDirCmd, Size, TermState};
 use crate::core::theme::{self as color_theme, ThemeSpec};
 use crate::core::vault::{Opened, Vault};
 use crate::core::xserver::{self, XServerManager};
@@ -80,8 +80,12 @@ struct Tab {
     monitor_ctl: Option<MonitorControl>,
     /// Where the input line being typed starts on the grid, and the completions for it.
     cmd: CmdLine,
-    /// Last working directory reported by the terminal (OSC 7 or window title).
+    /// Last working directory reported by the terminal (OSC 7, window title, `cd`, or `pwd`).
     cwd: Option<String>,
+    /// Previous working directory, used to resolve `cd -`.
+    prev_cwd: Option<String>,
+    /// Pending `pwd` command: `(cmd_abs_line, started_at)` waiting for its output line on the grid.
+    pending_pwd: Option<(usize, Instant)>,
 }
 
 /// Samples kept for the CPU / memory sparklines.
@@ -203,6 +207,33 @@ impl CmdLine {
 }
 
 impl Tab {
+    /// Update `cwd` (saving the old one in `prev_cwd`) and, when SFTP terminal-follow is active,
+    /// ask the SFTP task to move to it. `force = true` bypasses the `follow_last` dedup (used for
+    /// explicit `cd`/`pwd` commands so they still sync even if the user browsed elsewhere in SFTP).
+    fn set_terminal_cwd(&mut self, cwd: String, force: bool) {
+        let resolved = sftp::expand_tilde(&cwd, self.sftp.home.as_deref());
+        if self.cwd.as_deref() != Some(resolved.as_str()) {
+            if let Some(prev) = self.cwd.take() {
+                self.prev_cwd = Some(prev);
+            }
+            self.cwd = Some(resolved.clone());
+        }
+        self.follow_sftp(&resolved, force);
+    }
+
+    fn follow_sftp(&mut self, cwd: &str, force: bool) {
+        if !(self.connected && self.sftp.started && self.sftp.follow_terminal) {
+            return;
+        }
+        let want = sftp::expand_tilde(cwd, self.sftp.home.as_deref());
+        if want != self.sftp.cwd && (force || self.sftp.follow_last.as_deref() != Some(want.as_str())) {
+            if let TabKind::Ssh { cmd_tx } = &self.kind {
+                let _ = cmd_tx.send(SessionCmd::Sftp(SftpCmd::Follow(want.clone())));
+            }
+            self.sftp.follow_last = Some(want);
+        }
+    }
+
     fn effective_cwd(&self) -> Option<String> {
         if let Some(c) = &self.cwd {
             if !c.is_empty() {
@@ -1003,6 +1034,8 @@ impl RuxtApp {
             monitor_ctl: Some(monitor_ctl),
             cmd: CmdLine::default(),
             cwd: None,
+            prev_cwd: None,
+            pending_pwd: None,
         };
         match reuse {
             Some(i) => {
@@ -1040,6 +1073,8 @@ impl RuxtApp {
                     monitor_ctl: None,
                     cmd: CmdLine::default(),
                     cwd: crate::core::hostkeys::home_dir().map(|p| p.display().to_string()),
+                    prev_cwd: None,
+                    pending_pwd: None,
                 });
                 self.active = self.tabs.len() - 1;
             }
@@ -1264,6 +1299,20 @@ impl RuxtApp {
                                 }
                             }
                             SftpEvent::SaveRequested { remote, name } => self.queue_edit_save(tab, remote, name),
+                            SftpEvent::Home(h) => {
+                                self.tabs[i].sftp.apply(SftpEvent::Home(h));
+                                if let Some(cwd) = self.tabs[i].cwd.clone() {
+                                    self.tabs[i].follow_sftp(&cwd, true);
+                                }
+                            }
+                            SftpEvent::FollowFailed(path) => {
+                                if self.tabs[i].cwd.as_deref() == Some(path.as_str()) {
+                                    self.tabs[i].cwd = self.tabs[i].prev_cwd.take();
+                                }
+                                if self.tabs[i].sftp.follow_last.as_deref() == Some(path.as_str()) {
+                                    self.tabs[i].sftp.follow_last = None;
+                                }
+                            }
                             other => self.tabs[i].sftp.apply(other),
                         }
                     }
@@ -2119,18 +2168,47 @@ impl RuxtApp {
                                     tab.title = t;
                                 }
                             }
-                            if let Some(cwd) = tab.term.lock().take_cwd() {
-                                tab.cwd = Some(cwd.clone());
-                                if tab.connected && tab.sftp.started && tab.sftp.follow_terminal {
-                                    // Prompt titles give `~/proj`; compare against the absolute listing
-                                    // path and remember what was last requested so an unchanged prompt
-                                    // does not re-list the directory on every redraw.
-                                    let want = sftp::expand_tilde(&cwd, tab.sftp.home.as_deref());
-                                    if want != tab.sftp.cwd && tab.sftp.follow_last.as_deref() != Some(want.as_str()) {
-                                        if let TabKind::Ssh { cmd_tx } = &tab.kind {
-                                            let _ = cmd_tx.send(SessionCmd::Sftp(SftpCmd::List(want.clone())));
+                            let taken_cwd = tab.term.lock().take_cwd();
+                            if let Some(cwd) = taken_cwd {
+                                tab.set_terminal_cwd(cwd, false);
+                            }
+                            if let Some((cmd_line, started_at)) = tab.pending_pwd {
+                                if started_at.elapsed() > Duration::from_secs(3) {
+                                    tab.pending_pwd = None;
+                                } else {
+                                    let outcome = {
+                                        let t = tab.term.lock();
+                                        if t.closed || t.term.mode().contains(TermMode::ALT_SCREEN) {
+                                            Some(None)
+                                        } else {
+                                            let mut line_idx = cmd_line + 1;
+                                            let mut found = None;
+                                            let mut checked = 0usize;
+                                            while checked < 4 {
+                                                let Some((text, next_idx)) = t.logical_line_at(line_idx) else {
+                                                    break;
+                                                };
+                                                line_idx = next_idx;
+                                                checked += 1;
+                                                if let Some(p) = term::extract_pwd_output(&text) {
+                                                    found = Some(p);
+                                                    break;
+                                                }
+                                            }
+                                            if found.is_some() {
+                                                Some(found)
+                                            } else if checked >= 4 {
+                                                Some(None)
+                                            } else {
+                                                None
+                                            }
                                         }
-                                        tab.sftp.follow_last = Some(want);
+                                    };
+                                    if let Some(res) = outcome {
+                                        tab.pending_pwd = None;
+                                        if let Some(path) = res {
+                                            tab.set_terminal_cwd(path, true);
+                                        }
                                     }
                                 }
                             }
@@ -2356,7 +2434,8 @@ impl RuxtApp {
     /// Refresh the completion candidates of tab `idx` from what is typed on its grid.
     fn update_completions(&mut self, idx: usize) {
         let tab = &mut self.tabs[idx];
-        let typed: Option<String> = if !self.cfg.cmd_history && !self.cfg.tail_viewer {
+        let track_dir = tab.is_ssh() && tab.connected;
+        let typed: Option<String> = if !self.cfg.cmd_history && !self.cfg.tail_viewer && !track_dir {
             None
         } else {
             let t = tab.term.lock();
@@ -2429,7 +2508,8 @@ impl RuxtApp {
     /// Send typed bytes to the tab and keep the input-line tracker in step: a line starts at
     /// the first key, Enter records what the grid shows for it, Ctrl+C / Ctrl+D abandon it.
     fn send_tracked(&mut self, idx: usize, bytes: Vec<u8>) {
-        if self.cfg.cmd_history || self.cfg.tail_viewer {
+        let track_dir = self.tabs[idx].is_ssh() && self.tabs[idx].connected;
+        if self.cfg.cmd_history || self.cfg.tail_viewer || track_dir {
             let tab = &mut self.tabs[idx];
             let (closed, alt) = {
                 let t = tab.term.lock();
@@ -2481,6 +2561,48 @@ impl RuxtApp {
                         }
                     }
 
+                    if track_dir {
+                        let raw_cmd = grid_line
+                            .as_deref()
+                            .filter(|s| !s.trim().is_empty())
+                            .unwrap_or(&typed_line);
+                        let dir_cmds = term::parse_shell_dir_cmds(raw_cmd);
+                        if !dir_cmds.is_empty() {
+                            let tab = &mut self.tabs[idx];
+                            let mut cur = tab.effective_cwd();
+                            let mut prev = tab.prev_cwd.clone();
+                            let home = tab.sftp.home.clone();
+                            let mut cd_target = None;
+                            let mut has_pwd = false;
+                            for c in dir_cmds {
+                                match c {
+                                    ShellDirCmd::Cd(arg) => {
+                                        if let Some(next) = term::resolve_cd_path(
+                                            cur.as_deref(),
+                                            prev.as_deref(),
+                                            home.as_deref(),
+                                            arg.as_deref(),
+                                        ) {
+                                            prev = cur;
+                                            cur = Some(next.clone());
+                                            cd_target = Some(next);
+                                        }
+                                    }
+                                    ShellDirCmd::Pwd => {
+                                        has_pwd = true;
+                                    }
+                                }
+                            }
+                            if let Some(next) = cd_target {
+                                tab.set_terminal_cwd(next, true);
+                            }
+                            if has_pwd {
+                                let (cmd_line, _) = tab.term.lock().cursor_abs();
+                                tab.pending_pwd = Some((cmd_line, Instant::now()));
+                            }
+                        }
+                    }
+
                     if self.cfg.cmd_history {
                         if let Some(line) = grid_line {
                             self.history.record(&line, &host);
@@ -2489,6 +2611,7 @@ impl RuxtApp {
                     self.tabs[idx].cmd.reset();
                 } else if bytes.contains(&0x03) || bytes.contains(&0x04) {
                     tab.cmd.reset();
+                    tab.pending_pwd = None;
                 }
             }
         }

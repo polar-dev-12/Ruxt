@@ -188,7 +188,7 @@ fn pill(ui: &mut Ui, text: impl Into<String>, fill: Color32) -> Response {
         egui::Button::new(RichText::new(text.into()).color(on_color(fill)).strong())
             .fill(fill)
             .stroke(Stroke::NONE)
-            .corner_radius(CornerRadius::same(20)),
+            .corner_radius(CornerRadius::same(RADIUS_SMALL)),
     )
 }
 

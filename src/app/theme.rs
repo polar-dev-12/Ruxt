@@ -12,8 +12,8 @@ use egui::{
 
 /// Corner radius of ordinary controls (buttons, fields, rows).
 pub const RADIUS: u8 = 6;
-/// Fully rounded primary action.
-pub const RADIUS_PILL: u8 = 20;
+/// Corner radius of primary action buttons.
+pub const RADIUS_PILL: u8 = RADIUS;
 /// Shared row height for the toolbar, tabs and status bar so their baselines match.
 pub const ROW: f32 = 24.0;
 

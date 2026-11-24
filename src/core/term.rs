@@ -467,6 +467,52 @@ impl TermState {
         Some(out)
     }
 
+    /// Read one completed logical line starting at `abs_line`, joining any soft-wrapped
+    /// continuation rows (`Flags::WRAPLINE`). Returns `(trimmed_text, next_abs_line)` once the
+    /// cursor has moved past the last row of that logical line, or `None` if it is still being
+    /// written or has scrolled out of history.
+    pub fn logical_line_at(&self, abs_line: usize) -> Option<(String, usize)> {
+        let grid = self.term.grid();
+        let history = grid.history_size();
+        let cur_abs = grid.cursor.point.line.0 + history as i32;
+        if cur_abs < 0 || abs_line >= cur_abs as usize {
+            return None;
+        }
+        let cur_abs = cur_abs as usize;
+        let cols = grid.columns();
+        if cols == 0 {
+            return None;
+        }
+        let mut out = String::new();
+        let mut abs = abs_line;
+        loop {
+            if abs >= cur_abs || abs - abs_line > 16 {
+                return None;
+            }
+            let line = Line(abs as i32 - history as i32);
+            if line.0 < grid.topmost_line().0 {
+                return None;
+            }
+            let row = &grid[line];
+            for c in 0..cols {
+                let cell = &row[Column(c)];
+                if cell
+                    .flags
+                    .intersects(Flags::WIDE_CHAR_SPACER | Flags::LEADING_WIDE_CHAR_SPACER)
+                {
+                    continue;
+                }
+                out.push(if cell.c == '\0' { ' ' } else { cell.c });
+            }
+            let wrapped = row[Column(cols - 1)].flags.contains(Flags::WRAPLINE);
+            abs += 1;
+            if !wrapped {
+                break;
+            }
+        }
+        Some((out.trim_end().to_string(), abs))
+    }
+
     /// Scroll the terminal viewport so that `line` is visible near the vertical center.
     pub fn scroll_to_line(&mut self, line: i32) {
         let grid = self.term.grid();
@@ -593,5 +639,367 @@ pub fn resolve_color(term: &Term<Listener>, p: &Palette, color: Color) -> Rgb {
                 }
             }
         }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Shell `cd` / `pwd` directory tracking
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ShellDirCmd {
+    /// `cd` with target argument (`None` = home, `Some("-")` = previous dir, `Some(path)`).
+    Cd(Option<String>),
+    /// `pwd` (possibly with `-L` / `-P` flags).
+    Pwd,
+}
+
+/// Split a shell command line on unquoted `;`, `&&`, `||` into simple command segments.
+fn split_shell_segments(line: &str) -> Vec<&str> {
+    let mut out = Vec::new();
+    let bytes = line.as_bytes();
+    let mut start = 0;
+    let mut i = 0;
+    let mut quote: Option<u8> = None;
+    let mut escaped = false;
+    while i < bytes.len() {
+        let b = bytes[i];
+        if escaped {
+            escaped = false;
+            i += 1;
+            continue;
+        }
+        if let Some(q) = quote {
+            if b == b'\\' && q == b'"' {
+                escaped = true;
+            } else if b == q {
+                quote = None;
+            }
+            i += 1;
+            continue;
+        }
+        match b {
+            b'\\' => {
+                escaped = true;
+                i += 1;
+            }
+            b'\'' | b'"' => {
+                quote = Some(b);
+                i += 1;
+            }
+            b';' => {
+                out.push(&line[start..i]);
+                i += 1;
+                start = i;
+            }
+            b'&' if i + 1 < bytes.len() && bytes[i + 1] == b'&' => {
+                out.push(&line[start..i]);
+                i += 2;
+                start = i;
+            }
+            b'|' if i + 1 < bytes.len() && bytes[i + 1] == b'|' => {
+                out.push(&line[start..i]);
+                i += 2;
+                start = i;
+            }
+            _ => i += 1,
+        }
+    }
+    out.push(&line[start..]);
+    out
+}
+
+/// Tokenise a single simple shell command, honouring single/double quotes and backslash escapes.
+/// Returns `None` if the segment contains pipes, redirections, subshells, or unclosed quotes.
+fn tokenize_simple_cmd(seg: &str) -> Option<Vec<(String, bool)>> {
+    let mut tokens: Vec<(String, bool)> = Vec::new();
+    let mut cur = String::new();
+    let mut in_token = false;
+    let mut had_expansion = false;
+    let mut quote: Option<char> = None;
+    let mut chars = seg.chars().peekable();
+    while let Some(c) = chars.next() {
+        if let Some(q) = quote {
+            if c == q {
+                quote = None;
+            } else if q == '"' && c == '\\' {
+                if let Some(next) = chars.next() {
+                    cur.push(next);
+                }
+            } else {
+                if q == '"' && matches!(c, '$' | '`') {
+                    had_expansion = true;
+                }
+                cur.push(c);
+            }
+            continue;
+        }
+        match c {
+            '|' | '>' | '<' | '&' | '(' | ')' => return None,
+            '#' if !in_token => break, // shell comment
+            '\'' | '"' => {
+                quote = Some(c);
+                in_token = true;
+            }
+            '\\' => {
+                in_token = true;
+                if let Some(next) = chars.next() {
+                    cur.push(next);
+                }
+            }
+            c if c.is_whitespace() => {
+                if in_token {
+                    tokens.push((std::mem::take(&mut cur), had_expansion));
+                    in_token = false;
+                    had_expansion = false;
+                }
+            }
+            c => {
+                in_token = true;
+                if matches!(c, '$' | '`' | '*' | '?' | '[') {
+                    had_expansion = true;
+                }
+                cur.push(c);
+            }
+        }
+    }
+    if quote.is_some() {
+        return None;
+    }
+    if in_token {
+        tokens.push((cur, had_expansion));
+    }
+    Some(tokens)
+}
+
+/// Extract `cd` and `pwd` commands from a shell input line (e.g. `cd /var/log`, `cd ../app && pwd`).
+pub fn parse_shell_dir_cmds(line: &str) -> Vec<ShellDirCmd> {
+    let mut cmds = Vec::new();
+    for seg in split_shell_segments(line) {
+        let seg = seg.trim();
+        if seg.is_empty() {
+            continue;
+        }
+        let Some(tokens) = tokenize_simple_cmd(seg) else {
+            continue;
+        };
+        let Some((cmd, false)) = tokens.first() else {
+            continue;
+        };
+        match cmd.as_str() {
+            "cd" => {
+                let mut args = tokens[1..].iter().peekable();
+                let mut end_opts = false;
+                let mut targets: Vec<(&str, bool)> = Vec::new();
+                while let Some((tok, exp)) = args.next() {
+                    if !end_opts && tok == "--" {
+                        end_opts = true;
+                        continue;
+                    }
+                    if !end_opts && tok.starts_with('-') && tok.len() > 1 && tok[1..].chars().all(|c| matches!(c, 'L' | 'P' | 'e' | '@')) {
+                        continue;
+                    }
+                    targets.push((tok.as_str(), *exp));
+                }
+                match targets.as_slice() {
+                    [] => cmds.push(ShellDirCmd::Cd(None)),
+                    [(t, false)] if !t.is_empty() => cmds.push(ShellDirCmd::Cd(Some((*t).to_string()))),
+                    _ => {}
+                }
+            }
+            "pwd" => {
+                let all_flags = tokens[1..]
+                    .iter()
+                    .all(|(t, exp)| !exp && t.starts_with('-') && t.len() > 1 && t[1..].chars().all(|c| matches!(c, 'L' | 'P')));
+                if all_flags {
+                    cmds.push(ShellDirCmd::Pwd);
+                }
+            }
+            _ => {}
+        }
+    }
+    cmds
+}
+
+/// Normalise a POSIX path (`.`, `..`, duplicate `/`). Keeps a leading `~` when the home
+/// directory is not yet known; returns `None` if `..` would climb above an unresolved `~`.
+pub fn normalize_posix_path(path: &str) -> Option<String> {
+    let (prefix, rest) = if let Some(r) = path.strip_prefix('/') {
+        ("/", r)
+    } else if path == "~" {
+        return Some("~".to_string());
+    } else if let Some(r) = path.strip_prefix("~/") {
+        ("~/", r)
+    } else {
+        return None;
+    };
+    let mut stack: Vec<&str> = Vec::new();
+    for part in rest.split('/') {
+        match part {
+            "" | "." => {}
+            ".." => {
+                if stack.pop().is_none() && prefix == "~/" {
+                    return None;
+                }
+            }
+            p => stack.push(p),
+        }
+    }
+    if prefix == "/" {
+        if stack.is_empty() {
+            Some("/".to_string())
+        } else {
+            Some(format!("/{}", stack.join("/")))
+        }
+    } else if stack.is_empty() {
+        Some("~".to_string())
+    } else {
+        Some(format!("~/{}", stack.join("/")))
+    }
+}
+
+/// Resolve the target directory of a `cd` command against the tab's known `current`, `prev`,
+/// and `home` directories.
+pub fn resolve_cd_path(
+    current: Option<&str>,
+    prev: Option<&str>,
+    home: Option<&str>,
+    target: Option<&str>,
+) -> Option<String> {
+    let Some(t) = target else {
+        return Some(home.unwrap_or("~").to_string());
+    };
+    if t == "-" {
+        return prev.map(str::to_string);
+    }
+    if t == "~" || t.starts_with("~/") {
+        let expanded = super::sftp::expand_tilde(t, home);
+        return normalize_posix_path(&expanded);
+    }
+    if t.starts_with('/') {
+        return normalize_posix_path(t);
+    }
+    // Relative path: resolve against `current`, falling back to `home` (or `~`).
+    let base = current
+        .filter(|s| !s.is_empty())
+        .or(home)
+        .unwrap_or("~");
+    let base = super::sftp::expand_tilde(base, home);
+    let joined = if base == "/" {
+        format!("/{t}")
+    } else {
+        format!("{}/{t}", base.trim_end_matches('/'))
+    };
+    normalize_posix_path(&joined)
+}
+
+/// Extract an absolute POSIX directory path printed by `pwd`.
+pub fn extract_pwd_output(line: &str) -> Option<String> {
+    let trimmed = line.trim();
+    if !trimmed.starts_with('/') || trimmed.contains('\0') {
+        return None;
+    }
+    let clean = sanitize_title(trimmed);
+    if clean.starts_with('/') {
+        Some(clean)
+    } else {
+        None
+    }
+}
+
+#[cfg(test)]
+mod dir_cmd_tests {
+    use super::*;
+
+    #[test]
+    fn parses_cd_and_pwd_variants() {
+        assert_eq!(parse_shell_dir_cmds("cd"), vec![ShellDirCmd::Cd(None)]);
+        assert_eq!(parse_shell_dir_cmds("cd ~"), vec![ShellDirCmd::Cd(Some("~".into()))]);
+        assert_eq!(parse_shell_dir_cmds("cd /var/log"), vec![ShellDirCmd::Cd(Some("/var/log".into()))]);
+        assert_eq!(parse_shell_dir_cmds("cd -"), vec![ShellDirCmd::Cd(Some("-".into()))]);
+        assert_eq!(parse_shell_dir_cmds("cd -P /opt/app"), vec![ShellDirCmd::Cd(Some("/opt/app".into()))]);
+        assert_eq!(
+            parse_shell_dir_cmds(r#"cd "my folder/sub""#),
+            vec![ShellDirCmd::Cd(Some("my folder/sub".into()))]
+        );
+        assert_eq!(
+            parse_shell_dir_cmds(r"cd dir\ with\ spaces"),
+            vec![ShellDirCmd::Cd(Some("dir with spaces".into()))]
+        );
+        assert_eq!(
+            parse_shell_dir_cmds("cd /var && cd log; ls -la"),
+            vec![
+                ShellDirCmd::Cd(Some("/var".into())),
+                ShellDirCmd::Cd(Some("log".into())),
+            ]
+        );
+        assert_eq!(parse_shell_dir_cmds("pwd"), vec![ShellDirCmd::Pwd]);
+        assert_eq!(parse_shell_dir_cmds("pwd -P"), vec![ShellDirCmd::Pwd]);
+        assert_eq!(
+            parse_shell_dir_cmds("cd /tmp && pwd"),
+            vec![ShellDirCmd::Cd(Some("/tmp".into())), ShellDirCmd::Pwd]
+        );
+        // Piped or redirected pwd does not print to the terminal; dynamic expansions are skipped.
+        assert!(parse_shell_dir_cmds("pwd | cat").is_empty());
+        assert!(parse_shell_dir_cmds("pwd > /tmp/out").is_empty());
+        assert!(parse_shell_dir_cmds("cd $HOME/work").is_empty());
+        assert!(parse_shell_dir_cmds("cd foo*").is_empty());
+    }
+
+    #[test]
+    fn resolves_cd_paths() {
+        assert_eq!(
+            resolve_cd_path(Some("/home/u"), None, Some("/home/u"), None).as_deref(),
+            Some("/home/u")
+        );
+        assert_eq!(
+            resolve_cd_path(Some("/home/u"), None, Some("/home/u"), Some("proj/src")).as_deref(),
+            Some("/home/u/proj/src")
+        );
+        assert_eq!(
+            resolve_cd_path(Some("/home/u/proj"), None, Some("/home/u"), Some("../docs")).as_deref(),
+            Some("/home/u/docs")
+        );
+        assert_eq!(
+            resolve_cd_path(Some("/var/log"), Some("/home/u"), Some("/home/u"), Some("-")).as_deref(),
+            Some("/home/u")
+        );
+        assert_eq!(
+            resolve_cd_path(Some("/var/log"), None, Some("/home/u"), Some("~/bin")).as_deref(),
+            Some("/home/u/bin")
+        );
+        assert_eq!(
+            resolve_cd_path(None, None, None, Some("sub")).as_deref(),
+            Some("~/sub")
+        );
+        assert_eq!(
+            resolve_cd_path(Some("/"), None, Some("/root"), Some("..")).as_deref(),
+            Some("/")
+        );
+    }
+
+    #[test]
+    fn extracts_pwd_output() {
+        assert_eq!(extract_pwd_output("/var/log/nginx  ").as_deref(), Some("/var/log/nginx"));
+        assert_eq!(extract_pwd_output("/").as_deref(), Some("/"));
+        assert_eq!(extract_pwd_output("bash: pwd: error"), None);
+        assert_eq!(extract_pwd_output(""), None);
+    }
+
+    #[test]
+    fn logical_line_at_joins_wrapped_pwd_output() {
+        let ctx = egui::Context::default();
+        let (st, _rx) = TermState::new(ctx, Size { cols: 20, rows: 10 }, 100, false);
+        let mut t = st.lock();
+        t.advance(b"$ pwd\r\n");
+        let cmd_line = 0usize;
+        // Not finished yet while cursor is still on the output line.
+        t.advance(b"/very/long/directory/path/here");
+        assert_eq!(t.logical_line_at(cmd_line + 1), None);
+        // Once newline + next prompt arrive, the wrapped rows are joined.
+        t.advance(b"\r\n$ ");
+        let (line, next) = t.logical_line_at(cmd_line + 1).expect("completed line");
+        assert_eq!(line, "/very/long/directory/path/here");
+        assert_eq!(next, cmd_line + 3);
     }
 }

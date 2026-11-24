@@ -73,6 +73,10 @@ pub enum TransferKind {
 #[derive(Debug)]
 pub enum SftpCmd {
     List(String),
+    /// Navigate on behalf of terminal-follow (`cd`/`pwd`/OSC 7/title). Like `List`, but
+    /// silently ignored (emitting `SftpEvent::FollowFailed` instead of `Error`) if the path
+    /// does not exist or cannot be listed.
+    Follow(String),
     /// List only the sub-directories of `path` for the folder tree; does not change the
     /// current directory (the reply is `SftpEvent::Subdirs`).
     Peek(String),
@@ -181,6 +185,9 @@ pub enum SftpEvent {
         remote: String,
         name: String,
     },
+    /// A `SftpCmd::Follow` target could not be listed (e.g. a typo in `cd`); the UI rolls back
+    /// its optimistic cwd without showing an error banner.
+    FollowFailed(String),
     Error(String),
     Info(String),
 }
@@ -345,6 +352,21 @@ pub async fn run_sftp(
                         Err(_) => expanded,
                     };
                     sh.list_and_send(&p).await;
+                });
+            }
+            SftpCmd::Follow(p) => {
+                let sh = sh.clone();
+                let orig = p.clone();
+                let expanded = expand_tilde(&p, home_dir.as_deref());
+                tokio::spawn(async move {
+                    let target = match sh.sftp.canonicalize(expanded.clone()).await {
+                        Ok(c) => c,
+                        Err(_) => expanded,
+                    };
+                    match list_dir(&sh.sftp, &target).await {
+                        Ok(entries) => sh.send(SftpEvent::Listing { path: target, entries }),
+                        Err(_) => sh.send(SftpEvent::FollowFailed(orig)),
+                    }
                 });
             }
             SftpCmd::Peek(p) => {

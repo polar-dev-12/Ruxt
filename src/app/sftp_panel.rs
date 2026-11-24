@@ -586,8 +586,8 @@ impl SftpPanelState {
             }
             SftpEvent::Error(e) => self.last_error = Some(e),
             SftpEvent::Info(i) => self.info = Some(i),
-            // The app shows the confirm dialog; the panel has nothing to draw for it.
-            SftpEvent::SaveRequested { .. } => {}
+            // Handled by the app before reaching the panel.
+            SftpEvent::SaveRequested { .. } | SftpEvent::FollowFailed(_) => {}
         }
     }
 
@@ -1282,7 +1282,7 @@ impl SftpPanelState {
                 ui.checkbox(&mut self.show_hidden, tr("Hidden items (starting with .)"));
                 ui.checkbox(&mut self.follow_terminal, tr("Follow the terminal's working directory"))
                     .on_hover_text(tr(
-                        "Moves to the terminal's current directory whenever it changes (OSC 7 / prompt title)",
+                        "Moves to the terminal's current directory whenever it changes (cd / pwd / OSC 7 / prompt title)",
                     ));
                 ui.separator();
                 ui.label(RichText::new(tr("Sort by")).small().weak());
