@@ -796,7 +796,11 @@ pub fn parse_shell_dir_cmds(line: &str) -> Vec<ShellDirCmd> {
                         end_opts = true;
                         continue;
                     }
-                    if !end_opts && tok.starts_with('-') && tok.len() > 1 && tok[1..].chars().all(|c| matches!(c, 'L' | 'P' | 'e' | '@')) {
+                    if !end_opts
+                        && tok.starts_with('-')
+                        && tok.len() > 1
+                        && tok[1..].chars().all(|c| matches!(c, 'L' | 'P' | 'e' | '@'))
+                    {
                         continue;
                     }
                     targets.push((tok.as_str(), *exp));
@@ -808,9 +812,9 @@ pub fn parse_shell_dir_cmds(line: &str) -> Vec<ShellDirCmd> {
                 }
             }
             "pwd" => {
-                let all_flags = tokens[1..]
-                    .iter()
-                    .all(|(t, exp)| !exp && t.starts_with('-') && t.len() > 1 && t[1..].chars().all(|c| matches!(c, 'L' | 'P')));
+                let all_flags = tokens[1..].iter().all(|(t, exp)| {
+                    !exp && t.starts_with('-') && t.len() > 1 && t[1..].chars().all(|c| matches!(c, 'L' | 'P'))
+                });
                 if all_flags {
                     cmds.push(ShellDirCmd::Pwd);
                 }
@@ -880,10 +884,7 @@ pub fn resolve_cd_path(
         return normalize_posix_path(t);
     }
     // Relative path: resolve against `current`, falling back to `home` (or `~`).
-    let base = current
-        .filter(|s| !s.is_empty())
-        .or(home)
-        .unwrap_or("~");
+    let base = current.filter(|s| !s.is_empty()).or(home).unwrap_or("~");
     let base = super::sftp::expand_tilde(base, home);
     let joined = if base == "/" {
         format!("/{t}")
@@ -915,9 +916,15 @@ mod dir_cmd_tests {
     fn parses_cd_and_pwd_variants() {
         assert_eq!(parse_shell_dir_cmds("cd"), vec![ShellDirCmd::Cd(None)]);
         assert_eq!(parse_shell_dir_cmds("cd ~"), vec![ShellDirCmd::Cd(Some("~".into()))]);
-        assert_eq!(parse_shell_dir_cmds("cd /var/log"), vec![ShellDirCmd::Cd(Some("/var/log".into()))]);
+        assert_eq!(
+            parse_shell_dir_cmds("cd /var/log"),
+            vec![ShellDirCmd::Cd(Some("/var/log".into()))]
+        );
         assert_eq!(parse_shell_dir_cmds("cd -"), vec![ShellDirCmd::Cd(Some("-".into()))]);
-        assert_eq!(parse_shell_dir_cmds("cd -P /opt/app"), vec![ShellDirCmd::Cd(Some("/opt/app".into()))]);
+        assert_eq!(
+            parse_shell_dir_cmds("cd -P /opt/app"),
+            vec![ShellDirCmd::Cd(Some("/opt/app".into()))]
+        );
         assert_eq!(
             parse_shell_dir_cmds(r#"cd "my folder/sub""#),
             vec![ShellDirCmd::Cd(Some("my folder/sub".into()))]
@@ -968,10 +975,7 @@ mod dir_cmd_tests {
             resolve_cd_path(Some("/var/log"), None, Some("/home/u"), Some("~/bin")).as_deref(),
             Some("/home/u/bin")
         );
-        assert_eq!(
-            resolve_cd_path(None, None, None, Some("sub")).as_deref(),
-            Some("~/sub")
-        );
+        assert_eq!(resolve_cd_path(None, None, None, Some("sub")).as_deref(), Some("~/sub"));
         assert_eq!(
             resolve_cd_path(Some("/"), None, Some("/root"), Some("..")).as_deref(),
             Some("/")
@@ -980,7 +984,10 @@ mod dir_cmd_tests {
 
     #[test]
     fn extracts_pwd_output() {
-        assert_eq!(extract_pwd_output("/var/log/nginx  ").as_deref(), Some("/var/log/nginx"));
+        assert_eq!(
+            extract_pwd_output("/var/log/nginx  ").as_deref(),
+            Some("/var/log/nginx")
+        );
         assert_eq!(extract_pwd_output("/").as_deref(), Some("/"));
         assert_eq!(extract_pwd_output("bash: pwd: error"), None);
         assert_eq!(extract_pwd_output(""), None);
