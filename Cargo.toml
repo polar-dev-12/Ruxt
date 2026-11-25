@@ -1,6 +1,6 @@
 [package]
 name = "ruxt"
-version = "1.1.1"
+version = "1.2.0"
 edition = "2021"
 rust-version = "1.95"
 description = "SSH/SFTP terminal workstation with secure defaults, written in pure Rust"

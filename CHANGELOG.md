@@ -6,6 +6,12 @@ This project follows [Semantic Versioning](https://semver.org/). The format is b
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-25
+
+### Added
+- **Update check**: checks GitHub Releases on startup (Settings → "Check for updates on startup", on by default) and on demand in Help & about, notifying you in the status bar when a newer version is available without automatically downloading or running binaries.
+- **SFTP directory sync**: automatically updates the SFTP panel's current directory when running `cd` or `pwd` in the terminal.
+
 ## [1.1.0] - 2026-11-22
 
 ### Added
