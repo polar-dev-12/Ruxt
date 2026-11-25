@@ -1026,6 +1026,23 @@ static KO: &[(&str, &str)] = &[
     ("No lines match the current filter.", "현재 필터와 일치하는 줄이 없습니다."),
     ("paused ({n} B queued)", "일시정지됨 ({n} B 대기 중)"),
     ("{shown} / {total} lines", "{shown} / {total}줄"),
+    // ---- update check ----
+    ("Check for updates on startup", "시작 시 자동으로 업데이트 확인"),
+    (
+        "Queries GitHub Releases once when Ruxt starts to notify you when a newer version is available.",
+        "Ruxt를 시작할 때 GitHub Releases를 한 번 확인하여 새 버전이 있으면 알려줍니다.",
+    ),
+    ("Checks GitHub Releases for a newer version", "GitHub Releases에서 새 버전이 있는지 확인합니다"),
+    ("Checking for updates…", "업데이트 확인 중…"),
+    ("You are on the latest version.", "최신 버전을 사용 중입니다."),
+    ("Update available: v{ver}", "새 버전 사용 가능: v{ver}"),
+    ("Open release page", "릴리즈 페이지 열기"),
+    ("Update check failed: {e}", "업데이트 확인 실패: {e}"),
+    ("Update v{ver}", "업데이트 v{ver}"),
+    (
+        "New version available — click to open the release page",
+        "새 버전이 있습니다 — 클릭하여 릴리즈 페이지를 엽니다",
+    ),
 ];
 
 #[cfg(test)]

@@ -373,6 +373,9 @@ pub struct AppConfig {
     pub audit_days: u64,
     /// Write the audit log at all (off by default).
     pub audit_log: bool,
+    /// Check GitHub Releases for a newer version when Ruxt starts.
+    #[serde(default = "default_shown")]
+    pub check_updates_on_startup: bool,
     /// The first-run welcome tour has been shown.
     pub welcome_shown: bool,
     /// Which buttons the toolbar shows. Right-click the bar to change it.
@@ -521,6 +524,7 @@ impl Default for AppConfig {
             history_days: 90,
             audit_days: 180,
             audit_log: false,
+            check_updates_on_startup: true,
             welcome_shown: false,
             toolbar: ToolbarItems::default(),
             sessions: Vec::new(),

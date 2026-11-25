@@ -16,6 +16,7 @@ pub mod ssh;
 pub mod tail;
 pub mod term;
 pub mod theme;
+pub mod update;
 pub mod vault;
 pub mod x11;
 #[cfg(ruxt_embedded_xserver)]

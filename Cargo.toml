@@ -53,6 +53,8 @@ ruxt-inputguard = { path = "crates/ruxt-inputguard" }
 egui-pop-phosphor = "0.15"
 # Decodes the window icon (assets/icon-256.png); already in the tree through eframe.
 png = "0.18"
+# Lightweight HTTPS client (rustls) used solely to check GitHub Releases for app updates.
+ureq = { version = "3", default-features = false, features = ["rustls", "json"] }
 
 [target.'cfg(windows)'.dependencies]
 # Unpacks the X server tree that build.rs embeds (src/core/xbundle.rs).

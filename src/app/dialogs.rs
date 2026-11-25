@@ -1228,6 +1228,10 @@ pub fn settings_ui(
             .on_hover_text(tr(
                 "Records connections, authentication, host keys, tunnels, transfers and lock events as plain-text JSON lines (no passwords or terminal contents) in a file only you can read. Turning it off stops new entries; the existing file stays until you delete it.",
             ));
+        ui.checkbox(&mut cfg.check_updates_on_startup, tr("Check for updates on startup"))
+            .on_hover_text(tr(
+                "Queries GitHub Releases once when Ruxt starts to notify you when a newer version is available.",
+            ));
         ui.horizontal(|ui| {
             ui.label(tr("Keep command history for"));
             ui.add(
@@ -1748,7 +1752,10 @@ impl ThemeEditor {
 const REPO: &str = env!("CARGO_PKG_REPOSITORY");
 
 /// Body of the help window: header, documentation actions, security properties, shortcuts.
-pub fn about_ui(ui: &mut Ui) {
+/// Returns `true` if the user clicked "Check for updates".
+pub fn about_ui(ui: &mut Ui, update: &crate::core::update::UpdateState) -> bool {
+    use crate::core::update::UpdateState;
+    let mut check_clicked = false;
     ui.horizontal(|ui| {
         ui.label(RichText::new("Ruxt").size(24.0).strong());
         kit::chip(ui, &format!("v{}", env!("CARGO_PKG_VERSION")));
@@ -1763,13 +1770,49 @@ pub fn about_ui(ui: &mut Ui) {
         if kit::outlined(ui, tr("Threat model")).clicked() {
             open(ui, "/blob/main/docs/THREAT_MODEL.md");
         }
-        if kit::text_button(ui, tr("Check for updates"))
-            .on_hover_text(tr("Opens the release page in your browser"))
+        let checking = matches!(update, UpdateState::Checking);
+        if ui
+            .add_enabled(!checking, egui::Button::new(tr("Check for updates")).frame(false))
+            .on_hover_text(tr("Checks GitHub Releases for a newer version"))
             .clicked()
         {
-            open(ui, "/releases/latest");
+            check_clicked = true;
         }
     });
+    match update {
+        UpdateState::Idle => {}
+        UpdateState::Checking => {
+            ui.add_space(4.0);
+            ui.horizontal(|ui| {
+                ui.spinner();
+                ui.label(RichText::new(tr("Checking for updates…")).small().weak());
+            });
+        }
+        UpdateState::UpToDate => {
+            ui.add_space(4.0);
+            ui.label(RichText::new(tr("You are on the latest version.")).small().weak());
+        }
+        UpdateState::Available(info) => {
+            ui.add_space(4.0);
+            ui.horizontal_wrapped(|ui| {
+                ui.label(
+                    RichText::new(trf("Update available: v{ver}", &[("{ver}", &info.version)]))
+                        .small()
+                        .strong(),
+                );
+                if kit::primary(ui, tr("Open release page")).clicked() {
+                    ui.ctx().open_url(egui::OpenUrl::new_tab(info.url.clone()));
+                }
+            });
+        }
+        UpdateState::Failed(e) => {
+            ui.add_space(4.0);
+            ui.colored_label(
+                ERR_COLOR,
+                RichText::new(trf("Update check failed: {e}", &[("{e}", e)])).small(),
+            );
+        }
+    }
     ui.add_space(kit::GRID * 1.5);
 
     kit::section(ui, tr("Security properties"), |ui| {
@@ -1811,6 +1854,7 @@ pub fn about_ui(ui: &mut Ui) {
     });
 
     kit::section(ui, tr("Shortcuts"), |ui| shortcuts_grid(ui, "about-shortcuts"));
+    check_clicked
 }
 
 /// External editor setting: a drop-down of "OS default", the editors installed here and

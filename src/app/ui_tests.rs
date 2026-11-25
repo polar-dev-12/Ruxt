@@ -554,7 +554,14 @@ fn render_screens() {
                                 Screen::About => {
                                     kit::window(&ctx, tr("Help & about"), egui::Id::unique("about-window"), 520.0)
                                         .default_height(680.0)
-                                        .show(&ctx, |ui| kit::body(ui, &ctx, super::dialogs::about_ui));
+                                        .show(&ctx, |ui| {
+                                            kit::body(ui, &ctx, |ui| {
+                                                let _ = super::dialogs::about_ui(
+                                                    ui,
+                                                    &crate::core::update::UpdateState::Idle,
+                                                );
+                                            })
+                                        });
                                 }
                             }
                         },

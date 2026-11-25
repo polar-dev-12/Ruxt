@@ -29,6 +29,7 @@ use crate::core::ssh::{
 use crate::core::tail::{self, TailEvent, TailId, TailSpec};
 use crate::core::term::{self, Palette, ShellDirCmd, Size, TermState};
 use crate::core::theme::{self as color_theme, ThemeSpec};
+use crate::core::update::{self, UpdateState};
 use crate::core::vault::{Opened, Vault};
 use crate::core::xserver::{self, XServerManager};
 use crate::core::TabId;
@@ -481,6 +482,9 @@ pub struct RuxtApp {
     egui_ctx: egui::Context,
     tail_viewers: Vec<TailViewer>,
     next_tail_id: TailId,
+    /// Latest update-check status and the channel receiving the background thread's result.
+    update_state: UpdateState,
+    update_rx: Option<std::sync::mpsc::Receiver<UpdateState>>,
 }
 
 impl RuxtApp {
@@ -591,6 +595,8 @@ impl RuxtApp {
             egui_ctx: cc.egui_ctx.clone(),
             tail_viewers: Vec::new(),
             next_tail_id: 1,
+            update_state: UpdateState::Idle,
+            update_rx: None,
         };
         // Diagnostics / automation hooks (not persisted): force a theme, open a local shell.
         if let Ok(name) = std::env::var("RUXT_THEME").or_else(|_| std::env::var("RUSSHTERM_THEME")) {
@@ -608,7 +614,18 @@ impl RuxtApp {
         {
             app.open_local_tab(&cc.egui_ctx);
         }
+        if app.cfg.check_updates_on_startup && !cfg!(test) {
+            app.start_update_check(&cc.egui_ctx);
+        }
         app
+    }
+
+    fn start_update_check(&mut self, ctx: &egui::Context) {
+        if matches!(self.update_state, UpdateState::Checking) {
+            return;
+        }
+        self.update_state = UpdateState::Checking;
+        self.update_rx = Some(update::spawn_check(ctx.clone()));
     }
 
     fn palette(&self) -> Palette {
@@ -1235,6 +1252,15 @@ impl RuxtApp {
     // ------------------------------------------------------------------
 
     fn drain_events(&mut self) {
+        if let Some(rx) = &self.update_rx {
+            if let Ok(state) = rx.try_recv() {
+                self.update_rx = None;
+                if let UpdateState::Available(ref info) = state {
+                    self.flash(trf("Update available: v{ver}", &[("{ver}", &info.version)]));
+                }
+                self.update_state = state;
+            }
+        }
         while let Ok(ev) = self.ui_rx.try_recv() {
             match ev {
                 UiEvent::Connected { tab, info } => {
@@ -3049,6 +3075,15 @@ impl RuxtApp {
                 }
                 r.context_menu(|ui| self.xserver_menu(ui));
             }
+            if let UpdateState::Available(info) = &self.update_state {
+                let label = trf("Update v{ver}", &[("{ver}", &info.version)]);
+                if theme::status_button(ui, &label)
+                    .on_hover_text(tr("New version available — click to open the release page"))
+                    .clicked()
+                {
+                    ui.ctx().open_url(egui::OpenUrl::new_tab(info.url.clone()));
+                }
+            }
             if let Some((msg, at)) = &self.status_msg {
                 if at.elapsed() < Duration::from_secs(6) {
                     theme::status_text(ui, msg, text_color);
@@ -3842,17 +3877,22 @@ impl RuxtApp {
         }
         let mut open = true;
         let mut tour = false;
+        let mut check_updates = false;
+        let update_state = self.update_state.clone();
         kit::window(ctx, tr("Help & about"), egui::Id::unique("about-window"), 520.0)
             .default_height(680.0)
             .open(&mut open)
             .show(ctx, |ui| {
                 kit::body(ui, ctx, |ui| {
-                    dialogs::about_ui(ui);
+                    check_updates = dialogs::about_ui(ui, &update_state);
                     ui.add_space(kit::GRID);
                     tour = kit::outlined(ui, tr("Show the tour")).clicked();
                 })
             });
         self.about_open = open;
+        if check_updates {
+            self.start_update_check(ctx);
+        }
         if tour {
             self.about_open = false;
             self.welcome = Some(WelcomeDialog::new());

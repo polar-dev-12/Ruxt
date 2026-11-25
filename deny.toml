@@ -72,7 +72,6 @@ deny = [
     { name = "openssl" },
     { name = "native-tls" },
     { name = "reqwest" },
-    { name = "ureq" },
 ]
 
 [sources]
