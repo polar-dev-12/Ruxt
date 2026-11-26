@@ -16,7 +16,8 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::sync::{mpsc, oneshot};
+use tokio::sync::mpsc;
+use zeroize::Zeroizing;
 
 /// Unique identifier for a running or closed TailViewer instance.
 pub type TailId = u64;
@@ -39,6 +40,8 @@ pub struct TailSpec {
     pub files: Vec<String>,
     /// Working directory of the terminal when the command was launched.
     pub cwd: Option<String>,
+    /// Whether the command is prefixed with `sudo`.
+    pub uses_sudo: bool,
 }
 
 impl TailSpec {
@@ -70,8 +73,17 @@ impl TailSpec {
             lines: DEFAULT_TAIL_LINES,
             files: vec![p],
             cwd,
+            uses_sudo: false,
         }
     }
+}
+
+/// Control messages sent from the UI to a running SSH `tail` channel.
+pub enum TailControl {
+    /// Send raw bytes (e.g. a `sudo` password followed by `\n`) to the remote PTY.
+    Input(Zeroizing<Vec<u8>>),
+    /// Stop the remote command cleanly (Ctrl+C + close).
+    Stop,
 }
 
 #[derive(Debug, Clone)]
@@ -103,6 +115,19 @@ pub fn parse_tail_cmd(line: &str) -> Option<TailSpec> {
     }
     if idx >= tokens.len() {
         return None;
+    }
+
+    // Optional `sudo` wrapper (e.g. `sudo tail -f /var/log/syslog`, `sudo -u root tail -f ...`).
+    let mut uses_sudo = false;
+    if matches!(tokens[idx].as_str(), "sudo" | "/usr/bin/sudo" | "/bin/sudo") {
+        uses_sudo = true;
+        idx = skip_sudo_options(&tokens, idx + 1)?;
+        while idx < tokens.len() && is_env_assignment(&tokens[idx]) {
+            idx += 1;
+        }
+        if idx >= tokens.len() {
+            return None;
+        }
     }
 
     let prog = &tokens[idx];
@@ -242,7 +267,76 @@ pub fn parse_tail_cmd(line: &str) -> Option<TailSpec> {
         lines: lines.unwrap_or(default_lines),
         files,
         cwd: None,
+        uses_sudo,
     })
+}
+
+/// Advance past `sudo` flags to the wrapped command token. Returns `None` for non-command or
+/// unsupported `sudo` modes (interactive shell, edit, list, background, help/version, etc.).
+fn skip_sudo_options(tokens: &[String], mut idx: usize) -> Option<usize> {
+    while idx < tokens.len() {
+        let arg = tokens[idx].as_str();
+        if arg == "--" {
+            return Some(idx + 1);
+        }
+        if !arg.starts_with('-') || arg == "-" {
+            break;
+        }
+        if arg.starts_with("--") {
+            let name = arg.split_once('=').map_or(arg, |(k, _)| k);
+            match name {
+                "--login"
+                | "--shell"
+                | "--list"
+                | "--validate"
+                | "--reset-timestamp"
+                | "--remove-timestamp"
+                | "--version"
+                | "--edit"
+                | "--background"
+                | "--help" => return None,
+                "--user"
+                | "--group"
+                | "--close-from"
+                | "--chdir"
+                | "--host"
+                | "--prompt"
+                | "--role"
+                | "--type"
+                | "--command-timeout"
+                | "--other-user"
+                | "--chroot" => {
+                    idx += if arg.contains('=') { 1 } else { 2 };
+                }
+                _ => {
+                    idx += 1;
+                }
+            }
+            continue;
+        }
+
+        // Short flags like `-n`, `-E`, `-u root`, `-uroot`, `-nE`.
+        let mut chars = arg[1..].chars();
+        let mut consumed_next = false;
+        while let Some(ch) = chars.next() {
+            match ch {
+                'i' | 's' | 'l' | 'v' | 'k' | 'K' | 'V' | 'e' | 'b' => return None,
+                'u' | 'g' | 'C' | 'D' | 'h' | 'p' | 'r' | 't' | 'T' | 'U' | 'R' => {
+                    if chars.next().is_none() {
+                        consumed_next = true;
+                    }
+                    break;
+                }
+                _ => {}
+            }
+        }
+        idx += if consumed_next { 2 } else { 1 };
+    }
+    if idx < tokens.len() {
+        Some(idx)
+    } else {
+        None
+    }
 }
 
 fn parse_line_count(s: &str) -> Option<usize> {
@@ -390,7 +484,7 @@ pub async fn run_ssh_tail(
     spec: TailSpec,
     ui: mpsc::UnboundedSender<UiEvent>,
     ctx: egui::Context,
-    mut stop_rx: oneshot::Receiver<()>,
+    mut ctrl_rx: mpsc::UnboundedReceiver<TailControl>,
 ) {
     let send_ev = |ev: TailEvent| {
         let _ = ui.send(UiEvent::Tail { tab, ev });
@@ -424,12 +518,19 @@ pub async fn run_ssh_tail(
 
     let reason = loop {
         tokio::select! {
-            _ = &mut stop_rx => {
-                // Send Ctrl+C (SIGINT) then close the PTY channel (SIGHUP).
-                let _ = ch.data(&b"\x03"[..]).await;
-                let _ = ch.eof().await;
-                let _ = ch.close().await;
-                break "stopped".to_string();
+            ctrl = ctrl_rx.recv() => {
+                match ctrl {
+                    Some(TailControl::Input(bytes)) => {
+                        let _ = ch.data(&bytes[..]).await;
+                    }
+                    Some(TailControl::Stop) | None => {
+                        // Send Ctrl+C (SIGINT) then close the PTY channel (SIGHUP).
+                        let _ = ch.data(&b"\x03"[..]).await;
+                        let _ = ch.eof().await;
+                        let _ = ch.close().await;
+                        break "stopped".to_string();
+                    }
+                }
             }
             msg = ch.wait() => {
                 match msg {
@@ -725,6 +826,40 @@ mod tests {
         assert!(!s4.follow);
         assert_eq!(s4.lines, 50);
         assert_eq!(s4.files, vec!["app.log"]);
+        assert!(!s4.uses_sudo);
+    }
+
+    #[test]
+    fn parses_sudo_tail_commands() {
+        let s1 = parse_tail_cmd("sudo tail -f /var/log/syslog").unwrap();
+        assert!(s1.uses_sudo);
+        assert!(s1.follow);
+        assert_eq!(s1.files, vec!["/var/log/syslog"]);
+        assert_eq!(s1.raw_cmd, "sudo tail -f /var/log/syslog");
+
+        let s2 = parse_tail_cmd("sudo -u root -n tail -f -n 200 /var/log/auth.log").unwrap();
+        assert!(s2.uses_sudo);
+        assert!(s2.follow);
+        assert_eq!(s2.lines, 200);
+        assert_eq!(s2.files, vec!["/var/log/auth.log"]);
+
+        let s3 = parse_tail_cmd("sudo --user=www-data -- tail -100f app.log").unwrap();
+        assert!(s3.uses_sudo);
+        assert!(s3.follow);
+        assert_eq!(s3.lines, 100);
+        assert_eq!(s3.files, vec!["app.log"]);
+
+        let s4 = parse_tail_cmd("/usr/bin/sudo -E FOO=1 /usr/bin/tail -f error.log").unwrap();
+        assert!(s4.uses_sudo);
+        assert!(s4.follow);
+        assert_eq!(s4.files, vec!["error.log"]);
+
+        // Non-tail or unsupported sudo modes must be ignored.
+        assert!(parse_tail_cmd("sudo -i").is_none());
+        assert!(parse_tail_cmd("sudo -s").is_none());
+        assert!(parse_tail_cmd("sudo -b tail -f /var/log/syslog").is_none());
+        assert!(parse_tail_cmd("sudo -l tail").is_none());
+        assert!(parse_tail_cmd("sudo tail -f /var/log/syslog | grep err").is_none());
     }
 
     #[test]

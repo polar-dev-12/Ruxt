@@ -1026,6 +1026,8 @@ static KO: &[(&str, &str)] = &[
     ("No lines match the current filter.", "현재 필터와 일치하는 줄이 없습니다."),
     ("paused ({n} B queued)", "일시정지됨 ({n} B 대기 중)"),
     ("{shown} / {total} lines", "{shown} / {total}줄"),
+    ("Enter sudo password…", "sudo 비밀번호 입력…"),
+    ("Send", "전송"),
     // ---- update check ----
     ("Check for updates on startup", "시작 시 자동으로 업데이트 확인"),
     (

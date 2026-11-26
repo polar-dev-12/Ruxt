@@ -208,6 +208,7 @@ pub enum SessionCmd {
     StartTunnel { idx: usize, spec: TunnelSpec },
     StopTunnel { idx: usize },
     StartTail { id: TailId, spec: TailSpec },
+    TailInput { id: TailId, bytes: zeroize::Zeroizing<Vec<u8>> },
     StopTail { id: TailId },
     Disconnect,
 }
@@ -1007,7 +1008,7 @@ async fn run_session_inner(args: SessionArgs) -> Result<String> {
     let mut sftp_tx: Option<mpsc::UnboundedSender<SftpCmd>> = None;
 
     // ---- tail streams ---------------------------------------------------
-    let mut tails: HashMap<TailId, oneshot::Sender<()>> = HashMap::new();
+    let mut tails: HashMap<TailId, mpsc::UnboundedSender<tail::TailControl>> = HashMap::new();
 
     // ---- server status monitor -------------------------------------------
     let monitor_task = tokio::spawn(monitor::run(handle.clone(), tab, ui.clone(), ctx.clone(), monitor_ctl));
@@ -1080,10 +1081,10 @@ async fn run_session_inner(args: SessionArgs) -> Result<String> {
                     }
                     Some(SessionCmd::StartTail { id, spec }) => {
                         if let Some(prev) = tails.remove(&id) {
-                            let _ = prev.send(());
+                            let _ = prev.send(tail::TailControl::Stop);
                         }
-                        let (stop_tx, stop_rx) = oneshot::channel();
-                        tails.insert(id, stop_tx);
+                        let (ctrl_tx, ctrl_rx) = mpsc::unbounded_channel();
+                        tails.insert(id, ctrl_tx);
                         tokio::spawn(tail::run_ssh_tail(
                             handle.clone(),
                             tab,
@@ -1091,12 +1092,17 @@ async fn run_session_inner(args: SessionArgs) -> Result<String> {
                             spec,
                             ui.clone(),
                             ctx.clone(),
-                            stop_rx,
+                            ctrl_rx,
                         ));
                     }
+                    Some(SessionCmd::TailInput { id, bytes }) => {
+                        if let Some(tx) = tails.get(&id) {
+                            let _ = tx.send(tail::TailControl::Input(bytes));
+                        }
+                    }
                     Some(SessionCmd::StopTail { id }) => {
-                        if let Some(stop) = tails.remove(&id) {
-                            let _ = stop.send(());
+                        if let Some(tx) = tails.remove(&id) {
+                            let _ = tx.send(tail::TailControl::Stop);
                         }
                     }
                     Some(SessionCmd::Disconnect) | None => {
@@ -1109,8 +1115,8 @@ async fn run_session_inner(args: SessionArgs) -> Result<String> {
     }
 
     monitor_task.abort();
-    for (_, stop) in tails.drain() {
-        let _ = stop.send(());
+    for (_, tx) in tails.drain() {
+        let _ = tx.send(tail::TailControl::Stop);
     }
     for (_, t) in tunnels.drain() {
         t.abort();

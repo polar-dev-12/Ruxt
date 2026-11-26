@@ -14,6 +14,7 @@ use std::fs::{File, OpenOptions};
 use std::io::{BufWriter, Write};
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
+use zeroize::{Zeroize, Zeroizing};
 
 /// Duration of the visual window/toolbar blinking effect after a keyword hit.
 const WATCH_FLASH_DURATION: Duration = Duration::from_secs(3);
@@ -27,6 +28,7 @@ pub enum TailViewerAction {
     Restart(TailId),
     Close(TailId),
     Copy(String),
+    SendInput(TailId, Zeroizing<Vec<u8>>),
 }
 
 /// Format used when recording matched log lines to a separate `.txt` file.
@@ -283,6 +285,12 @@ pub struct TailViewer {
     pub detached: bool,
     /// Present when this viewer is backed by a local file tailer thread.
     pub local_handle: Option<LocalTailHandle>,
+    /// Active `sudo` password prompt detected on the remote PTY (e.g. `[sudo] password for user:`).
+    sudo_prompt: Option<String>,
+    /// Password input buffer for `sudo_prompt` (wiped immediately on submit/close/drop).
+    sudo_password: Zeroizing<String>,
+    /// Request keyboard focus on the `sudo` password field once when a prompt appears.
+    sudo_focus_requested: bool,
 }
 
 impl TailViewer {
@@ -316,6 +324,9 @@ impl TailViewer {
             watch,
             detached: true,
             local_handle,
+            sudo_prompt: None,
+            sudo_password: Zeroizing::new(String::new()),
+            sudo_focus_requested: false,
         }
     }
 
@@ -347,15 +358,28 @@ impl TailViewer {
     fn ingest_bytes(&mut self, bytes: &[u8]) {
         let text = String::from_utf8_lossy(bytes);
         let clean = strip_ansi(&text);
+        let mut saw_newline = false;
         for ch in clean.chars() {
             if ch == '\r' {
                 continue;
             }
             if ch == '\n' {
+                saw_newline = true;
                 let line = std::mem::take(&mut self.partial_line);
                 self.on_incoming_line(line);
             } else {
                 self.partial_line.push(ch);
+            }
+        }
+        if self.spec.uses_sudo && self.running {
+            let pending = self.partial_line.trim();
+            if !pending.is_empty() && looks_like_sudo_prompt(pending, self.total_lines) {
+                if self.sudo_prompt.as_deref() != Some(pending) {
+                    self.sudo_prompt = Some(pending.to_string());
+                    self.sudo_focus_requested = true;
+                }
+            } else if saw_newline && pending.is_empty() {
+                self.sudo_prompt = None;
             }
         }
     }
@@ -412,6 +436,9 @@ impl TailViewer {
         self.running = false;
         self.status = reason;
         self.local_handle = None;
+        self.sudo_prompt = None;
+        self.sudo_password.zeroize();
+        self.sudo_focus_requested = false;
     }
 
     pub fn clear(&mut self) {
@@ -422,6 +449,9 @@ impl TailViewer {
         self.total_bytes = 0;
         self.total_lines = 0;
         self.watch.unread_hits = 0;
+        self.sudo_prompt = None;
+        self.sudo_password.zeroize();
+        self.sudo_focus_requested = false;
     }
 
     /// Render the Tail Viewer (either as a standalone native viewport or as an in-app window).
@@ -459,6 +489,10 @@ impl TailViewer {
                 }
                 egui::Panel::top(Id::unique(("tv-top", self.id))).show(vp_ui, |ui| {
                     self.toolbar_ui(ui, &mut action);
+                    if self.running && self.sudo_prompt.is_some() {
+                        ui.separator();
+                        self.sudo_prompt_bar_ui(ui, &mut action);
+                    }
                     if self.watch.show_bar {
                         ui.separator();
                         self.watch_bar_ui(ui, blink_on);
@@ -508,6 +542,10 @@ impl TailViewer {
             .max_size(max)
             .show(ctx, |ui| {
                 self.toolbar_ui(ui, &mut action);
+                if self.running && self.sudo_prompt.is_some() {
+                    ui.separator();
+                    self.sudo_prompt_bar_ui(ui, &mut action);
+                }
                 if self.watch.show_bar {
                     ui.separator();
                     self.watch_bar_ui(ui, blink_on);
@@ -655,6 +693,54 @@ impl TailViewer {
                 self.detached = !self.detached;
             }
         });
+    }
+
+    fn sudo_prompt_bar_ui(&mut self, ui: &mut Ui, action: &mut TailViewerAction) {
+        let Some(prompt) = self.sudo_prompt.clone() else {
+            return;
+        };
+        let dark = ui.visuals().dark_mode;
+        let bg = if dark {
+            Color32::from_rgb(0x3a, 0x2c, 0x16)
+        } else {
+            Color32::from_rgb(0xff, 0xf3, 0xd6)
+        };
+        let border = if dark {
+            Color32::from_rgb(0xb8, 0x82, 0x2a)
+        } else {
+            Color32::from_rgb(0xd4, 0x9b, 0x35)
+        };
+        egui::Frame::NONE
+            .fill(bg)
+            .stroke(Stroke::new(1.0, border))
+            .corner_radius(CornerRadius::same(4))
+            .inner_margin(egui::Margin::symmetric(8, 4))
+            .show(ui, |ui| {
+                ui.horizontal_wrapped(|ui| {
+                    ui.label(RichText::new(&prompt).monospace().strong());
+                    let r = ui.add(
+                        TextEdit::singleline(&mut *self.sudo_password)
+                            .password(true)
+                            .hint_text(tr("Enter sudo password…"))
+                            .desired_width(200.0),
+                    );
+                    if self.sudo_focus_requested {
+                        r.request_focus();
+                        self.sudo_focus_requested = false;
+                    }
+                    let submitted = (r.lost_focus() && ui.input(|i| i.key_pressed(Key::Enter)))
+                        || ui.button(tr("Send")).clicked();
+                    if submitted {
+                        let mut bytes = Vec::with_capacity(self.sudo_password.len() + 1);
+                        bytes.extend_from_slice(self.sudo_password.as_bytes());
+                        bytes.push(b'\n');
+                        *action = TailViewerAction::SendInput(self.id, Zeroizing::new(bytes));
+                        self.sudo_password.zeroize();
+                        self.sudo_prompt = None;
+                        self.partial_line.clear();
+                    }
+                });
+            });
     }
 
     fn watch_bar_ui(&mut self, ui: &mut Ui, blink_on: bool) {
@@ -1225,6 +1311,30 @@ fn inject_viewport_clipboard(ctx: &Context) {
     });
 }
 
+/// Heuristic to detect an interactive `sudo` password prompt sitting in `partial_line` (no trailing
+/// newline). Covers standard English, localized (Korean, Japanese, Chinese, European), and custom
+/// `sudo -p` prompts while avoiding false positives once log lines are streaming.
+fn looks_like_sudo_prompt(trimmed: &str, total_lines: u64) -> bool {
+    if !trimmed.ends_with(':') || trimmed.len() > 160 {
+        return false;
+    }
+    if total_lines == 0 {
+        return true;
+    }
+    let lower = trimmed.to_lowercase();
+    lower.contains("sudo")
+        || lower.contains("password")
+        || lower.contains("passcode")
+        || lower.contains("passphrase")
+        || lower.contains("암호")
+        || lower.contains("비밀번호")
+        || lower.contains("パスワード")
+        || lower.contains("密码")
+        || lower.contains("mot de passe")
+        || lower.contains("passwort")
+        || lower.contains("contraseña")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1286,5 +1396,22 @@ mod tests {
         assert_eq!(viewer.watch.unread_hits, 0);
 
         let _ = std::fs::remove_file(&tmp);
+    }
+
+    #[test]
+    fn detects_sudo_password_prompt_and_clears_after_output() {
+        let spec = crate::core::tail::parse_tail_cmd("sudo tail -f /var/log/syslog").unwrap();
+        let mut viewer = TailViewer::new(2, 1, "srv".into(), spec, None);
+
+        viewer.push_bytes(b"[sudo] password for alice: ");
+        assert_eq!(viewer.sudo_prompt.as_deref(), Some("[sudo] password for alice:"));
+
+        // Localized prompt after a failed attempt
+        viewer.push_bytes(b"\r\nSorry, try again.\r\n[sudo] alice \xec\x95\x94\xed\x98\xb8: ");
+        assert_eq!(viewer.sudo_prompt.as_deref(), Some("[sudo] alice 암호:"));
+
+        // Once log output streams with a trailing newline, the prompt disappears.
+        viewer.push_bytes(b"\r\nNov 26 21:00:00 host kernel: ready\r\n");
+        assert!(viewer.sudo_prompt.is_none());
     }
 }

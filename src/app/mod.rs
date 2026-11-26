@@ -2569,7 +2569,9 @@ impl RuxtApp {
                             .as_deref()
                             .and_then(tail::parse_tail_cmd)
                             .or_else(|| tail::parse_tail_cmd(&typed_line));
-                        if let Some(spec) = tail_spec {
+                        // On local tabs we read files directly in Rust without elevation, so let
+                        // `sudo tail` run in the local terminal as usual.
+                        if let Some(spec) = tail_spec.filter(|s| !s.uses_sudo || tab.is_ssh()) {
                             if self.cfg.cmd_history {
                                 self.history.record(&spec.raw_cmd, &host);
                             }
@@ -2758,6 +2760,15 @@ impl RuxtApp {
                 TailViewerAction::Copy(text) => {
                     self.copy_to_clipboard(ctx, text);
                     self.flash(tr("copied"));
+                }
+                TailViewerAction::SendInput(id, bytes) => {
+                    if let Some(tab_id) = self.tail_viewers.iter().find(|v| v.id == id).map(|v| v.tab_id) {
+                        if let Some(tab_idx) = self.tab_index(tab_id) {
+                            if let TabKind::Ssh { cmd_tx } = &self.tabs[tab_idx].kind {
+                                let _ = cmd_tx.send(SessionCmd::TailInput { id, bytes });
+                            }
+                        }
+                    }
                 }
             }
         }
