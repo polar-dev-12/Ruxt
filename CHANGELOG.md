@@ -6,6 +6,11 @@ This project follows [Semantic Versioning](https://semver.org/). The format is b
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-11-26
+
+### Added
+- **Tail Viewer `sudo tail` support**: `sudo tail` commands (including common `sudo` flags such as `-n`, `-E`, `-u`) typed in SSH tabs now open in Tail Viewer. When the remote server prompts for a password, a masked password input bar appears at the top of the Tail Viewer window and wipes the password from memory immediately after sending or closing.
+
 ## [1.2.0] - 2026-11-25
 
 ### Added
