@@ -285,27 +285,10 @@ fn skip_sudo_options(tokens: &[String], mut idx: usize) -> Option<usize> {
         if arg.starts_with("--") {
             let name = arg.split_once('=').map_or(arg, |(k, _)| k);
             match name {
-                "--login"
-                | "--shell"
-                | "--list"
-                | "--validate"
-                | "--reset-timestamp"
-                | "--remove-timestamp"
-                | "--version"
-                | "--edit"
-                | "--background"
-                | "--help" => return None,
-                "--user"
-                | "--group"
-                | "--close-from"
-                | "--chdir"
-                | "--host"
-                | "--prompt"
-                | "--role"
-                | "--type"
-                | "--command-timeout"
-                | "--other-user"
-                | "--chroot" => {
+                "--login" | "--shell" | "--list" | "--validate" | "--reset-timestamp" | "--remove-timestamp"
+                | "--version" | "--edit" | "--background" | "--help" => return None,
+                "--user" | "--group" | "--close-from" | "--chdir" | "--host" | "--prompt" | "--role" | "--type"
+                | "--command-timeout" | "--other-user" | "--chroot" => {
                     idx += if arg.contains('=') { 1 } else { 2 };
                 }
                 _ => {

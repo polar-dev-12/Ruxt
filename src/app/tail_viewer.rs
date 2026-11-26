@@ -728,8 +728,8 @@ impl TailViewer {
                         r.request_focus();
                         self.sudo_focus_requested = false;
                     }
-                    let submitted = (r.lost_focus() && ui.input(|i| i.key_pressed(Key::Enter)))
-                        || ui.button(tr("Send")).clicked();
+                    let submitted =
+                        (r.lost_focus() && ui.input(|i| i.key_pressed(Key::Enter))) || ui.button(tr("Send")).clicked();
                     if submitted {
                         let mut bytes = Vec::with_capacity(self.sudo_password.len() + 1);
                         bytes.extend_from_slice(self.sudo_password.as_bytes());

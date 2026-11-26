@@ -203,13 +203,29 @@ pub enum AppLockThen {
 
 pub enum SessionCmd {
     Input(Vec<u8>),
-    Resize { cols: u16, rows: u16 },
+    Resize {
+        cols: u16,
+        rows: u16,
+    },
     Sftp(SftpCmd),
-    StartTunnel { idx: usize, spec: TunnelSpec },
-    StopTunnel { idx: usize },
-    StartTail { id: TailId, spec: TailSpec },
-    TailInput { id: TailId, bytes: zeroize::Zeroizing<Vec<u8>> },
-    StopTail { id: TailId },
+    StartTunnel {
+        idx: usize,
+        spec: TunnelSpec,
+    },
+    StopTunnel {
+        idx: usize,
+    },
+    StartTail {
+        id: TailId,
+        spec: TailSpec,
+    },
+    TailInput {
+        id: TailId,
+        bytes: zeroize::Zeroizing<Vec<u8>>,
+    },
+    StopTail {
+        id: TailId,
+    },
     Disconnect,
 }
 
